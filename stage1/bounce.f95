@@ -1,10 +1,16 @@
 program bouncer
 use gnuplot_fortran
 implicit none
-real :: dt=0.001,t=0
-real, dimension(10) :: x,y,z
-real, dimension(10) :: vx,vy,vz
-integer :: N=size(x),k,i
+real :: dt=0.001
+!N is the number of particles
+!tN is the number of itrations
+integer, parameter :: N=10, tN=500
+real :: time=0
+real, dimension(tN) :: t
+real, dimension(tN) :: qT
+real, dimension(3,N) :: q
+real, dimension(3,N) :: qDot
+integer :: k,i,j
 !real, dimension(1) :: plX,plY,plZ
 !put some number as seed
 
@@ -13,13 +19,14 @@ call srand(1000)
 
 !initialize particles to be at some random location
 do i=1,N
-   x(i)=rand()
-   y(i)=rand()
-   z(i)=rand()
+   t(i)=0
+   q(1,i)=0 !rand()
+   q(2,i)=0 !rand()
+   q(3,i)=0 !rand()
    
-   vx(i)=rand()*10
-   vy(i)=rand()*10
-   vz(i)=rand()*10
+   qDot(1,i)=rand()*10
+   qDot(2,i)=i*i*10 !rand()*10
+   qDot(3,i)=rand()*10
 end do
 
 !make x array
@@ -28,15 +35,39 @@ end do
 
 
 call startPlot()
-do k=1,100
+do k=1,tN
+   t(k)=time
+   time=time+dt
    do i=1,N
-      t=t+dt
-      x(i)=x(i)+(vx(i)*dt)
-      y(i)=y(i)+(vy(i)*dt)
-      z(i)=z(i)+(vz(i)*dt)
+      q(:,i)=q(:,i)+(qDot(:,i)*dt)
+      do j=1,3
+         if (q(j,i) > 1.0) then
+            qDot(j,i)=-qDot(j,i)
+            q(j,i)=q(j,i)-2*(q(j,i)-1)
+         else if (q(j,i) < 0.0) then
+            qDot(j,i)=-qDot(j,i)
+            q(j,i) = -q(j,i) 
+         end if
+      end do
+      qT(k)=q(2,2)
+      !y(i)=y(i)+(vy(i)*dt)
+      !z(i)=z(i)+(vz(i)*dt)
+      ! if (x(i) > 1.0) then
+      !    vx(i)=-vx(i)
+      !    x(i)=x(i)- 2*( 1-x(i))
+      ! end if
+      ! if (y(i) > 1.0) then
+      !    vy(i)=-vy(i)
+      !    y(i)=y(i)- 2*( 1-y(i))
+      ! end if
+      ! if (z(i) > 1.0) then
+      !    vz(i)=-vz(i)
+      !    z(i)=z(i)- 2*( 1-z(i))
+      ! end if
    end do
-   call nextPlot3d(x,y,z)
+   call nextPlot3d(q(1,:),q(2,:),q(3,:))
 end do
+call plot2d(t,qT,"fileasdf.jpg")
 
 !do i=1,100
    !make y array

@@ -21,14 +21,15 @@ contains
     
     !open a file to write the commands for gnuplot
     open(unit =2,file='command')
-    write(2,*) "set terminal jpeg"
-    write(2,*) "set output 'temp/",filename,"'"
-    write(*,*) "The filename you gave was: ", filename
-    write(2,*) "plot 'tempData.dat'"
+    !write(2,*) "set terminal jpeg"
+    !write(2,*) "set output 'temp/",filename,"'"
+    !write(2,*) "set yrange [0:1]"
+    !write(*,*) "The filename you gave was: ", filename
+    write(2,*) "plot 'tempData.dat' w lp"
     close(2)
 
-    
-    call system ("gnuplot 'command'")
+    !call system ("gnuplot 'command'")
+    call system ("gnuplot -persist 'command'")
     call system ("rm tempData.dat")
   end subroutine plot2d
 
@@ -54,7 +55,12 @@ contains
     open(unit =2,file='command')
     write(2,*) "set terminal jpeg"
     write(2,*) "set output 'temp/",filename,"'"
-    write(*,*) "The filename you gave was: ", filename
+    write(*,"(a)",advance="no") "#"
+    !, filename
+    write(2,*) "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0"
+    write(2,*) "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0"
+    write(2,*) "set grid ztics lc rgb '#bbbbbb' lw 1 lt 0"
+
     write(2,*) "set xrange [0:1]"
     write(2,*) "set yrange [0:1]"
     write(2,*) "set zrange [0:1]"
