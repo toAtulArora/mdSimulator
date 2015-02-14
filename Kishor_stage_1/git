@@ -1,0 +1,86 @@
+   
+  293  git
+  294  git init
+  295  ls
+  296  cd Kishor
+  297  ls
+  298  git init
+  299  git grep lin
+  300  git grep 'lin'
+  301  ls
+  302  cd .git
+  303  ls
+  304  cd ..
+  305  git init Project
+  306  cd .git
+  307  git status
+  308  status
+  309  git status
+  310  gedit project.f95
+  311  git status
+  312  ls
+  313  git add project.f95
+  314  cd..
+  315  cd ..
+  316  git add project.f95
+  317  git status
+  318  gedit project.f95
+  319  git status
+  320  git commit
+  321  git commit project.f95
+  322  git
+  323  touch .gitignore
+  324  git config --global user.name "Kishor"
+  325  git config --global user.email "kishor.bharti1@gmail.com"
+  326  git commit project.f95
+  327  git commit -m project.f95
+  328  git branch branch1
+  329  ls
+  330  git checkout branch1
+  331  touch file.dat
+  332  git add
+  333* 
+  334  git checkout master
+  335  git status
+  336  git merge branch1
+  337  git mergetool
+  338  git stash
+  339  git remote
+  340  git clone https://github.com/toAtulArora/mdSimulator.git
+  341  ls
+  342  cd mdSimulator
+  343  ls
+  344  cat PreReq
+  345  cd PreReq
+  346  ls
+  347  cd 1animation
+  348  ls
+  349  cd ..
+  350* 
+  351  cd mdSimulator
+  352  git remote -v
+  353  git fetch origin
+  354  git pull origin
+  355  ls
+  356  touch Dadda.dat
+  357  git commit -a -m 'dadda.dat'
+  358  git push origin master
+  359  git pull origin
+  360  LS
+  361  ls
+  362  git add 'Dadda.dat'
+  363  git commit -a -m 'dadda.dat'
+  364  git push origin master
+  365  git pull origin
+  366  git add .
+  367  git push origin master
+  368  git pull origin
+  369  git add .
+  370  git commit -am
+  371  git commit -am "My program added"
+  372  git push origin master
+  373  git pull origin
+  374  LS
+  375  ls
+  376  history
+
