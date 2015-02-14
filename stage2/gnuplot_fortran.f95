@@ -23,9 +23,10 @@ contains
   end subroutine setZrange
 
 
-  subroutine plot2dSave(x,y,filename)
+  subroutine plot2dSave(x,y,filename,rangeXstart,rangeXend,rangeYstart,rangeYend)
     real, intent(in), dimension(:) :: x,y
     character, intent(in), dimension(13) :: filename
+    real, intent(in), optional :: rangeXstart, rangeXend, rangeYstart, rangeYend
     integer :: size_x, size_y,i
     size_x = size(x)
     size_y = size(y)
@@ -43,6 +44,15 @@ contains
     open(unit =2,file='command')
     write(2,*) "set terminal jpeg"
     write(2,*) "set output 'temp2d/",filename,"'"
+
+    if (present(rangeXstart) .and. present(rangeXend) ) then
+       write(2,*) "set xrange [",rangeXstart,":",rangeXend,"]"
+    end if
+
+    if (present(rangeYstart) .and. present(rangeYend) ) then
+       write(2,*) "set yrange [",rangeYstart,":",rangeYend,"]"
+    end if
+
     !write(2,*) "set yrange [0:1]"
     write(*,*) "The filename you gave was: ", filename
     write(2,*) "plot 'tempData.dat' w lp"
@@ -152,4 +162,5 @@ contains
   end subroutine endPlot
 !  subroutine createPlot()
 
+  
 end module gnuplot_fortran
