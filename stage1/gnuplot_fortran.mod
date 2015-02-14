@@ -1,5 +1,5 @@
 GFORTRAN module version '10' created from gnuplot_fortran.f95
-MD5:9538c2b7e09a2d00f86c9589953d320e -- If you edit this, you'll get what you deserve.
+MD5:87fd7e923114452ccb1fbee981e048ca -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
@@ -40,8 +40,8 @@ MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
 0 UNKNOWN ()) 20 0 (21 22 23) () 0 () () () 0 0)
 24 'plot3d' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
 MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
-0 UNKNOWN ()) 25 0 (26 27 28 29) () 0 () () () 0 0)
-30 'startplot' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
+0 UNKNOWN ()) 25 0 (26 27 28 29 30) () 0 () () () 0 0)
+31 'startplot' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
 MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0
 0 () () 0 () () () 0 0)
 8 'x' '' '' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
@@ -90,8 +90,10 @@ DIMENSION DUMMY) (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
 0 INTEGER ()) 0 '1'))) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0
 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '13')) 0 ()
 () () 0 0)
+30 'angle' '' '' 25 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 )
 
 ('endplot' 0 2 'filename' 0 3 'gnuplot_fortran' 0 4 'graphcount' 0 5
 'nextplot2d' 0 6 'nextplot3d' 0 10 'plot2d' 0 15 'plot2dsave' 0 19
-'plot3d' 0 24 'startplot' 0 30)
+'plot3d' 0 24 'startplot' 0 31)

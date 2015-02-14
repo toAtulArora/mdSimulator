@@ -4,10 +4,11 @@ implicit none
 real :: dt=0.001
 !N is the number of particles
 !tN is the number of itrations
-integer, parameter :: N=10, tN=500
+!mN is the number of iterations for which a movie is made
+integer, parameter :: N=10, tN=5000, mN=500
 real :: time=0
 real, dimension(tN) :: t,E
-real, dimension(tN) :: qT
+real, dimension(3,tN) :: qT,qDotT
 real, dimension(3,N) :: q
 real, dimension(3,N) :: qDot
 integer :: k,i,j
@@ -21,13 +22,13 @@ call srand(1000)
 E(1)=0
 do i=1,N
    t(i)=0
-   q(1,i)=0 !rand()
-   q(2,i)=0 !rand()
-   q(3,i)=0 !rand()
+   q(1,i)=rand()
+   q(2,i)=rand()
+   q(3,i)=rand()
    
-   qDot(1,i)=rand()*10
-   qDot(2,i)=i*i*10 !rand()*10
-   qDot(3,i)=rand()*10
+   qDot(1,i)=10 !rand()*10
+   qDot(2,i)=20 !rand()*10
+   qDot(3,i)=30 !rand()*10
    E(1)=E(1)+energy(qDot(:,i))
 end do
 
@@ -44,16 +45,17 @@ do k=1,tN
    do i=1,N
       q(:,i)=q(:,i)+(qDot(:,i)*dt)
       do j=1,3
-         if (q(j,i) > 1.0) then
+         if (q(j,i) >= 1.0) then
             qDot(j,i)=-qDot(j,i)
             q(j,i)=q(j,i)-2*(q(j,i)-1)
-         else if (q(j,i) < 0.0) then
+         else if (q(j,i) <= 0.0) then
             qDot(j,i)=-qDot(j,i)
             q(j,i) = -q(j,i) 
          end if
       end do
       E(k)=E(k)+energy(qDot(:,i))
-      qT(k)=q(2,2)
+      qT(:,k)=q(:,1)
+      qDotT(:,k)=qDot(:,1)
       !y(i)=y(i)+(vy(i)*dt)
       !z(i)=z(i)+(vz(i)*dt)
       ! if (x(i) > 1.0) then
@@ -69,17 +71,25 @@ do k=1,tN
       !    z(i)=z(i)- 2*( 1-z(i))
       ! end if
    end do
-   !call nextPlot3d(q(1,:),q(2,:),q(3,:))
+   if(k<mN) then
+      call nextPlot3d(q(1,:),q(2,:),q(3,:))
+   end if
 end do
-call plot2d(t,qT)
-call plot2dSave(t,E,"save.jpg")
+call plot2dSave(t,qT(1,:),"qT1.jpg")
+call plot2dSave(t,qT(2,:),"qT2.jpg")
+call plot2dSave(t,qT(3,:),"qT3.jpg")
+call plot2dSave(t,E,"energyT.jpg")
+call plot2dSave(t,qDotT(1,:),"qDotT1.jpg")
+call plot2dSave(t,qDotT(2,:),"qDotT2.jpg")
+call plot2dSave(t,qDotT(3,:),"qDotT3.jpg")
+
 !do i=1,100
    !make y array
    !y=sin(x) / (i*x*(1.0/100.0)+1)
    !call nextPlot3d(x,y,x)
 !end do
 
-!call endPlot()
+call endPlot()
 
 
 contains

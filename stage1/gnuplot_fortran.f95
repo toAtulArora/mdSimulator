@@ -22,7 +22,7 @@ contains
     !open a file to write the commands for gnuplot
     open(unit =2,file='command')
     write(2,*) "set terminal jpeg"
-    write(2,*) "set output 'temp/",filename,"'"
+    write(2,*) "set output 'temp2d/",filename,"'"
     !write(2,*) "set yrange [0:1]"
     write(*,*) "The filename you gave was: ", filename
     write(2,*) "plot 'tempData.dat' w lp"
@@ -63,8 +63,9 @@ contains
     call system ("rm tempData.dat")
   end subroutine plot2d
 
-  subroutine plot3d(x,y,z,filename)
+  subroutine plot3d(x,y,z,filename,angle)
     real, intent(in), dimension(:) :: x,y,z
+    real, intent(in) :: angle
     character, intent(in), dimension(13) :: filename
     integer :: size_x, size_y, size_z, i
     size_x = size(x)
@@ -90,7 +91,7 @@ contains
     write(2,*) "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0"
     write(2,*) "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0"
     write(2,*) "set grid ztics lc rgb '#bbbbbb' lw 1 lt 0"
-
+    write(2,*) "set view 60,",angle
     write(2,*) "set xrange [0:1]"
     write(2,*) "set yrange [0:1]"
     write(2,*) "set zrange [0:1]"
@@ -113,12 +114,14 @@ contains
     real, intent(in), dimension(:) :: x,y,z
     graphCount = graphCount+1
     write(fileName,'(a,i4.4,a)') 'file',graphCount,'.jpeg'
-    call plot3d(x,y,z,fileName)
+    call plot3d(x,y,z,fileName,mod(real(graphcount),360.0) )
   end subroutine nextPlot3d
 
   subroutine startPlot()
     call system ("rm -r temp")
     call system ("mkdir temp")    
+    call system ("rm -r temp2d")
+    call system ("mkdir temp2d")
     graphCount=0
   end subroutine startPlot
   subroutine endPlot()
