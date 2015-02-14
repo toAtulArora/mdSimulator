@@ -6,7 +6,7 @@ real :: dt=0.001
 !tN is the number of itrations
 integer, parameter :: N=10, tN=500
 real :: time=0
-real, dimension(tN) :: t
+real, dimension(tN) :: t,E
 real, dimension(tN) :: qT
 real, dimension(3,N) :: q
 real, dimension(3,N) :: qDot
@@ -18,6 +18,7 @@ integer :: k,i,j
 call srand(1000)
 
 !initialize particles to be at some random location
+E(1)=0
 do i=1,N
    t(i)=0
    q(1,i)=0 !rand()
@@ -27,6 +28,7 @@ do i=1,N
    qDot(1,i)=rand()*10
    qDot(2,i)=i*i*10 !rand()*10
    qDot(3,i)=rand()*10
+   E(1)=E(1)+energy(qDot(:,i))
 end do
 
 !make x array
@@ -77,5 +79,12 @@ call plot2d(t,qT,"fileasdf.jpg")
 
 call endPlot()
 
+
+contains
+  function energy(x)
+    real, dimension(3), intent(in) :: x
+    real :: energy
+    energy = (x(1)*x(1)) * (x(2)*x(2)) * (x(3)*x(3))
+  end function energy
 
 end program bouncer
