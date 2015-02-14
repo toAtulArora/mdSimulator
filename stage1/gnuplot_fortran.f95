@@ -3,9 +3,39 @@ module gnuplot_fortran
   integer :: graphCount=0
   character(13) :: fileName
 contains
-  subroutine plot2d(x,y,filename)
+  subroutine plot2dSave(x,y,filename)
     real, intent(in), dimension(:) :: x,y
     character, intent(in), dimension(13) :: filename
+    integer :: size_x, size_y,i
+    size_x = size(x)
+    size_y = size(y)
+    if (size_x /= size_y ) then
+       print *,"Array size mismatch"
+    else
+       open(unit =1 ,file='tempData.dat')
+       do i = 1, size(x)
+          write(1,*) x(i), y(i)
+       end do
+       close(1)
+    end if
+    
+    !open a file to write the commands for gnuplot
+    open(unit =2,file='command')
+    write(2,*) "set terminal jpeg"
+    write(2,*) "set output 'temp/",filename,"'"
+    !write(2,*) "set yrange [0:1]"
+    write(*,*) "The filename you gave was: ", filename
+    write(2,*) "plot 'tempData.dat' w lp"
+    close(2)
+
+    call system ("gnuplot 'command'")
+    !call system ("gnuplot -persist 'command'")
+    !call system ("rm tempData.dat")
+  end subroutine plot2dSave
+
+  subroutine plot2d(x,y)
+    real, intent(in), dimension(:) :: x,y
+    
     integer :: size_x, size_y,i
     size_x = size(x)
     size_y = size(y)
@@ -76,7 +106,7 @@ contains
     real, intent(in), dimension(:) :: x,y
     graphCount = graphCount+1
     write(fileName,'(a,i4.4,a)') 'file',graphCount,'.jpeg'
-    call plot2d(x,y,fileName)
+    call plot2dSave(x,y,fileName)
   end subroutine nextPlot2d
 
   subroutine nextPlot3d(x,y,z)

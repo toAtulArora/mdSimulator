@@ -40,6 +40,7 @@ call startPlot()
 do k=1,tN
    t(k)=time
    time=time+dt
+   E(k)=0
    do i=1,N
       q(:,i)=q(:,i)+(qDot(:,i)*dt)
       do j=1,3
@@ -51,6 +52,7 @@ do k=1,tN
             q(j,i) = -q(j,i) 
          end if
       end do
+      E(k)=E(k)+energy(qDot(:,i))
       qT(k)=q(2,2)
       !y(i)=y(i)+(vy(i)*dt)
       !z(i)=z(i)+(vz(i)*dt)
@@ -67,17 +69,17 @@ do k=1,tN
       !    z(i)=z(i)- 2*( 1-z(i))
       ! end if
    end do
-   call nextPlot3d(q(1,:),q(2,:),q(3,:))
+   !call nextPlot3d(q(1,:),q(2,:),q(3,:))
 end do
-call plot2d(t,qT,"fileasdf.jpg")
-
+call plot2d(t,qT)
+call plot2dSave(t,E,"save.jpg")
 !do i=1,100
    !make y array
    !y=sin(x) / (i*x*(1.0/100.0)+1)
    !call nextPlot3d(x,y,x)
 !end do
 
-call endPlot()
+!call endPlot()
 
 
 contains
