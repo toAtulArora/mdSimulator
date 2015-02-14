@@ -1,0 +1,6 @@
+ set terminal jpeg
+ set output 'temp/file0100.jpeg'
+ set xrange [-1:10]
+ set yrange [-1:10]
+ set zrange [-1:10]
+ splot 'tempData.dat' using 1:2:3

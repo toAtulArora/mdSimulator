@@ -15,4 +15,9 @@ List of applications you'd need
 	* gfortran
 	* gnuplot
 	* emacs
-	* 
+	* libavconv
+
+Some Useful Commands
+--
+	* If you're running ubuntu, might want to do the following if you're running out of space	
+	rm -rf ~/.thumbs/*
