@@ -6,7 +6,7 @@ real :: dt=0.001
 !N is the number of particles
 !tN is the number of itrations
 !mN is the number of iterations for which a movie is made
-integer, parameter :: N=1000, tN=5000, mN=500
+integer, parameter :: N=10000, tN=5000, mN=500
 !this is the volume
 real, parameter :: volume=10
 !this is the mass
@@ -39,7 +39,7 @@ call setXrange(0.0,real(boxSize))
 call setYrange(0.0,real(boxSize))
 call setZrange(0.0,real(boxSize))
 
-call iterateTheseManyTimes(tN)
+call iterateTheseManyTimes(tN,.true.)
 
 avgP=sum(P)/tN
 do i=1,100
