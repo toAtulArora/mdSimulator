@@ -55,9 +55,9 @@ contains
     write(2,*) "set terminal jpeg"
     write(2,*) "set output 'temp/",filename,"'"
     write(*,*) "The filename you gave was: ", filename
-    write(2,*) "set xrange [-1:10]"
-    write(2,*) "set yrange [-1:10]"
-    write(2,*) "set zrange [-1:10]"
+    write(2,*) "set xrange [0:1]"
+    write(2,*) "set yrange [0:1]"
+    write(2,*) "set zrange [0:1]"
     write(2,*) "splot 'tempData.dat' using 1:2:3"
     close(2)
 
