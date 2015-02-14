@@ -1,0 +1,3 @@
+ set terminal jpeg
+ set output 'temp/file1000.jpeg'
+ plot 'tempData.dat'

@@ -1,0 +1,8 @@
+module gnulpot_fortran
+  implicit none
+contains
+  subroutine plot2d(x,y)
+    real, intent(in) dimension(:) :: x,y
+  endsubroutine plot 2d
+  
+end module gnuplot_fortran

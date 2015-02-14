@@ -1,0 +1,16 @@
+FC = gfortran
+
+SRCS = $(patsubst %.f95, %.o, $(wildcard *.f95))
+
+PROGRAM = plotter
+
+all: $(PROGRAM)
+
+$(PROGRAM): $(SRCS)
+	$(FC) -o $@ $^
+
+%.o : %.f95
+	$(FC) -o $@ $<
+
+clean:
+	rm -f *.o *.mod

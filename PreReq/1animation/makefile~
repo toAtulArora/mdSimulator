@@ -1,0 +1,16 @@
+FC = gfortran
+
+SRCS = gnuplot_fortran.o plotter.o
+
+PROGRAM = plotter
+
+all: $(PROGRAM)
+
+$(PROGRAM): $(SRCS)
+	$(FC) -o $@ $^
+
+%.o : %.f95
+	$(FC) -o $@ $<
+
+clean:
+	rm -f *.o *.mod

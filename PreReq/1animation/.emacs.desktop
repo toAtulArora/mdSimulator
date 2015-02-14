@@ -1,0 +1,51 @@
+;; -*- mode: emacs-lisp; coding: emacs-mule; -*-
+;; --------------------------------------------------------------------------
+;; Desktop File for Emacs
+;; --------------------------------------------------------------------------
+;; Created Sun Feb  8 16:51:50 2015
+;; Desktop file format version 206
+;; Emacs version 24.3.1
+
+;; Global section:
+(setq desktop-missing-file-warning nil)
+(setq tags-file-name nil)
+(setq tags-table-list nil)
+(setq search-ring nil)
+(setq regexp-search-ring nil)
+(setq register-alist nil)
+(setq file-name-history '("~/Documents/gitHub/mdSimulator/PreReq/1animation/gnuplot_fortran.f95" "~/Documents/gitHub/mdSimulator/PreReq/1animation/" "~/Documents/gitHub/mdSimulator/PreReq/1animation/gnuplot_fortran.f95" "~/Documents/gitHub/mdSimulator/PreReq/1animation/gnuplot_fortran.mod"))
+
+;; Buffer section -- buffers listed in same order as in buffer list:
+(desktop-create-buffer 206
+  "/home/atul/Documents/gitHub/mdSimulator/PreReq/1animation/plotter.f95"
+  "plotter.f95"
+  'f90-mode
+  nil
+  429
+  '(nil nil)
+  nil
+  nil
+  '((indent-tabs-mode) (buffer-file-coding-system . undecided-unix)))
+
+(desktop-create-buffer 206
+  "/home/atul/Documents/gitHub/mdSimulator/PreReq/1animation/gnuplot_fortran.f95"
+  "gnuplot_fortran.f95"
+  'f90-mode
+  nil
+  23
+  '(nil nil)
+  nil
+  nil
+  '((indent-tabs-mode) (buffer-file-coding-system . undecided-unix)))
+
+(desktop-create-buffer 206
+  "/home/atul/Documents/gitHub/mdSimulator/PreReq/1animation/gnuplot_fortran.mod"
+  "gnuplot_fortran.mod"
+  'm2-mode
+  nil
+  1
+  '(nil nil)
+  nil
+  nil
+  '((buffer-file-coding-system . undecided-unix)))
+
