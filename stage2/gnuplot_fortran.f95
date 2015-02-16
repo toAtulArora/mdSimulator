@@ -61,8 +61,8 @@ contains
     close(2)
     
     if (present(filename)) then
-       write(*,*) "The filename you gave was: ", filename
        call system ("gnuplot 'command'")
+       write(*,*) "'",filename,"' has been saved."
     else
        call system ("gnuplot -persist 'command'")
     end if
@@ -164,7 +164,7 @@ contains
   subroutine endPlot()
     write (*,*) "Converting to avi.."
     call system ("avconv -i 'temp/file%04d.jpeg' result.avi")
-    write (*,*) "Done!"
+    !write (*,*) "Done!"
     !TODO: command for creating a movie and cleanup
   end subroutine endPlot
 !  subroutine createPlot()

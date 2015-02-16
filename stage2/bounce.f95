@@ -41,9 +41,9 @@ integer(kind=4) :: k,i,j
 
 
 write(*,*) "the largest integer i can store is ", huge(i)
-write (*,*) "initializing initial q and qDot"
+write (*,*) "Initializing initial q and qDot"
 call init()
-write (*,*) "done"
+write (*,*) "Done!\n"
 call startPlot()
 
 call setXrange(0.0,real(boxSize))
@@ -51,8 +51,8 @@ call setYrange(0.0,real(boxSize))
 call setZrange(0.0,real(boxSize))
 
 write (*,*) "Starting iterations.."
-call iterateTheseManyTimes(tN,.true.)
-write (*,*) "Done iterating :)"
+call iterateTheseManyTimes(tN)
+write (*,*) "Done iterating :) \n"
 windowSize(1)=evaluateAvgWindowSizeForP(Pw)
 
 !PnTemp
@@ -63,7 +63,7 @@ windowSize(1)=evaluateAvgWindowSizeForP(Pw)
 ! write(*,*) "error in P3:", errorPercentInPn(P4)
 ! P4 = avgPwithTheseManyIterations(10)
 ! write(*,*) "error in P4:", errorPercentInPn(P4)
-
+write (*,*) "Generating graphs.."
  call plot2dSave(t,qT(1,:),"qT1.jpg")
  call plot2dSave(t,qT(2,:),"qT2.jpg")
  call plot2dSave(t,qT(3,:),"qT3.jpg")
@@ -73,16 +73,18 @@ windowSize(1)=evaluateAvgWindowSizeForP(Pw)
  call plot2dSave(t,qDotT(3,:),"qDotT3.jpg")
 call plot2dSave(t,P,"pressureT.jpg")
 call plot2dSave(t( 1:(tN-windowSize(1)) ),Pw ( 1:(tN-windowSize(1)) ),"averagedP.jpg") 
-
+write (*,*) "Done \n"
 !call plot2dSave(t(1:(tN-i)),Pw(1:(tN-i)),rangeYstart=0.0,rangeYend=(avgP*2.0),rangeXstart=0.0,rangeXend=(N*dt)) 
 
 ! call plot2dSave(t,P2,"pressure2T.jpg",rangeYstart=100000.0,rangeYend=550000.0)
 ! call plot2dSave(t,P3,"pressure3T.jpg",rangeYstart=100000.0,rangeYend=550000.0)
 ! call plot2dSave(t,P4,"pressure4T.jpg",rangeYstart=100000.0,rangeYend=550000.0)
 
-
+write (*,*) "Finalizing visualizaiton..."
 call endPlot()
+write (*,*) "Done \n"
 
+write (*,*) "---------\n All done \n"
 
 contains
   function energy(x)
@@ -223,7 +225,7 @@ contains
     do i=1,tN/10,(tN/1000+1)
        PnTemp=avgPwithTheseManyIterations(i)
        temp1=errorPercentInPn(PnTemp(1:(tN-i)) )
-       write(*,*) "Error in P",i,": ",temp1
+       !write(*,*) "Error in P",i,": ",temp1
        
        if (temp1<maxPercentError) then
           write(*,*) "Window size is ",i

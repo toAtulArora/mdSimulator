@@ -1,10 +1,3 @@
  set terminal jpeg
- set output 'temp/file0022.jpeg'
- set grid ytics lc rgb '#bbbbbb' lw 1 lt 0
- set grid xtics lc rgb '#bbbbbb' lw 1 lt 0
- set grid ztics lc rgb '#bbbbbb' lw 1 lt 0
- set view 60,   22.0000000    
- set xrange [0:   2.15443468     ]
- set yrange [0:   2.15443468     ]
- set zrange [0:   2.15443468     ]
- splot 'tempData.dat' using 1:2:3
+ set output 'temp2d/averagedP.jpg'
+ plot 'tempData.dat' w lp
