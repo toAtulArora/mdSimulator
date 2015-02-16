@@ -2,7 +2,7 @@
 #http://stackoverflow.com/questions/5871780/creating-a-fortran-makefile
 
 #Compiler
-FC = gfortran
+FC = gfortran -fbackslash
 
 #source files, use the most dependent in the end
 SRCS = $(addsuffix .o, gnuplot_fortran bounce)

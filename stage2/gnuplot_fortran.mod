@@ -1,5 +1,5 @@
 GFORTRAN module version '10' created from gnuplot_fortran.f95
-MD5:7e18e1f1ab03f10d506227cccca38196 -- If you edit this, you'll get what you deserve.
+MD5:655b572d70b30a12a97cdc4f70af249a -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
@@ -89,10 +89,8 @@ INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (CONSTANT (
 INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 23 'filename' '' '' 20 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION DUMMY) (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-0 INTEGER ()) 0 '1'))) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0
-INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '13')) 0 ()
-() () 0 0)
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
+0 0)
 24 'rangexstart' '' '' 20 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 OPTIONAL DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 25 'rangexend' '' '' 20 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0

@@ -25,7 +25,7 @@ contains
 
   subroutine plot2dSave(x,y,filename,rangeXstart,rangeXend,rangeYstart,rangeYend)
     real, intent(in), dimension(:) :: x,y
-    character, intent(in), dimension(13) :: filename
+    character(len=*), intent(in),optional :: filename
     real, intent(in), optional :: rangeXstart, rangeXend, rangeYstart, rangeYend
     integer :: size_x, size_y,i
     size_x = size(x)
@@ -42,8 +42,10 @@ contains
     
     !open a file to write the commands for gnuplot
     open(unit =2,file='command')
-    write(2,*) "set terminal jpeg"
-    write(2,*) "set output 'temp2d/",filename,"'"
+    if(present(filename)) then
+       write(2,*) "set terminal jpeg"
+       write(2,*) "set output 'temp2d/",filename,"'"
+    end if
 
     if (present(rangeXstart) .and. present(rangeXend) ) then
        write(2,*) "set xrange [",rangeXstart,":",rangeXend,"]"
@@ -54,11 +56,16 @@ contains
     end if
 
     !write(2,*) "set yrange [0:1]"
-    write(*,*) "The filename you gave was: ", filename
+    
     write(2,*) "plot 'tempData.dat' w lp"
     close(2)
-
-    call system ("gnuplot 'command'")
+    
+    if (present(filename)) then
+       write(*,*) "The filename you gave was: ", filename
+       call system ("gnuplot 'command'")
+    else
+       call system ("gnuplot -persist 'command'")
+    end if
     !call system ("gnuplot -persist 'command'")
     !call system ("rm tempData.dat")
   end subroutine plot2dSave
@@ -116,7 +123,7 @@ contains
     open(unit =2,file='command')
     write(2,*) "set terminal jpeg"
     write(2,*) "set output 'temp/",filename,"'"
-    write(*,"(a)",advance="no") "#"
+    !write(*,"(a)",advance="no") "#"
     !, filename
     write(2,*) "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0"
     write(2,*) "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0"
