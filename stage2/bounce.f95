@@ -8,7 +8,7 @@ real :: dt=0.001
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
 integer(kind=4) :: N=1000
-integer(kind=4), parameter :: tN=10000, mN=500,Nmax=1000000
+integer(kind=4), parameter :: tN=1000, mN=500,Nmax=1000000
 
 !this is the volume
 real :: volume=10
@@ -25,7 +25,7 @@ real :: time=0
 !Pw is windowed pressure (averaged over optimal window size (0.1 percent)
 real, dimension(tN) :: t,E,P,P2,P3,P4,Pw
 
-integer, dimension(10) :: windowSize
+integer, dimension(10000) :: windowSize,windowSizeN
 !integer :: pWindowSize = 1
 real :: temp1
 real :: avgP
@@ -35,25 +35,37 @@ real, dimension(3,2) :: pressureWall
 real, dimension(3,tN) :: qT,qDotT
 real, dimension(3,Nmax) :: q
 real, dimension(3,Nmax) :: qDot
-integer(kind=4) :: k,i,j
+integer(kind=4) :: k,i,j,l
 !real, dimension(1) :: plX,plY,plZ
 !put some number as seed
 
-
-write(*,*) "the largest integer i can store is ", huge(i)
-write (*,*) "Initializing initial q and qDot"
-call init()
-write (*,*) "Done!\n"
 call startPlot()
 
-call setXrange(0.0,real(boxSize))
-call setYrange(0.0,real(boxSize))
-call setZrange(0.0,real(boxSize))
 
-write (*,*) "Starting iterations.."
-call iterateTheseManyTimes(tN)
-write (*,*) "Done iterating :) \n"
-windowSize(1)=evaluateAvgWindowSizeForP(Pw)
+!write(*,*) "the largest integer i can store is ", huge(i)
+
+l=0
+do l=1,30
+   N=10**(l/8.0)
+   write (*,*) "Initializing initial q and qDot for ", N, " particles."
+   call init()
+   write (*,*) "Done!\n"
+
+
+   call setXrange(0.0,real(boxSize))
+   call setYrange(0.0,real(boxSize))
+   call setZrange(0.0,real(boxSize))
+
+   write (*,*) "Starting iterations.."
+   call iterateTheseManyTimes(tN)
+   write (*,*) "Done iterating :) \n"
+   !l=l+1
+   windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
+   windowSizeN(l)=N
+end do
+
+l=30
+call plot2dSave(log(1.0*windowSizeN(1:l)),dt*windowSize(1:l),"windowSize vs N")
 
 !PnTemp
 
@@ -63,17 +75,25 @@ windowSize(1)=evaluateAvgWindowSizeForP(Pw)
 ! write(*,*) "error in P3:", errorPercentInPn(P4)
 ! P4 = avgPwithTheseManyIterations(10)
 ! write(*,*) "error in P4:", errorPercentInPn(P4)
-write (*,*) "Generating graphs.."
- call plot2dSave(t,qT(1,:),"qT1.jpg")
- call plot2dSave(t,qT(2,:),"qT2.jpg")
- call plot2dSave(t,qT(3,:),"qT3.jpg")
- call plot2dSave(t,E,"energyT.jpg")
- call plot2dSave(t,qDotT(1,:),"qDotT1.jpg")
- call plot2dSave(t,qDotT(2,:),"qDotT2.jpg")
- call plot2dSave(t,qDotT(3,:),"qDotT3.jpg")
-call plot2dSave(t,P,"pressureT.jpg")
-call plot2dSave(t( 1:(tN-windowSize(1)) ),Pw ( 1:(tN-windowSize(1)) ),"averagedP.jpg") 
-write (*,*) "Done \n"
+
+
+
+!NOT MAKING GRAPHS FOR NOW...
+! write (*,*) "Generating graphs.."
+!  call plot2dSave(t,qT(1,:),"qT1.pdf")
+!  call plot2dSave(t,qT(2,:),"qT2.pdf")
+!  call plot2dSave(t,qT(3,:),"qT3.pdf")
+!  call plot2dSave(t,E,"energyT.pdf")
+!  call plot2dSave(t,qDotT(1,:),"qDotT1.pdf")
+!  call plot2dSave(t,qDotT(2,:),"qDotT2.pdf")
+!  call plot2dSave(t,qDotT(3,:),"qDotT3.pdf")
+! call plot2dSave(t,P,"pressureT.pdf")
+! call plot2dSave(t( 1:(tN-windowSize(1)) ),Pw ( 1:(tN-windowSize(1)) ),"averagedP.pdf") 
+! write (*,*) "Done \n"
+
+
+
+
 !call plot2dSave(t(1:(tN-i)),Pw(1:(tN-i)),rangeYstart=0.0,rangeYend=(avgP*2.0),rangeXstart=0.0,rangeXend=(N*dt)) 
 
 ! call plot2dSave(t,P2,"pressure2T.jpg",rangeYstart=100000.0,rangeYend=550000.0)
@@ -119,9 +139,9 @@ contains
        q(2,i)=rand()*boxSize
        q(3,i)=rand()*boxSize
 
-       qDot(1,i)=signedRand()*500 !rand()*10
-       qDot(2,i)=signedRand()*500 !rand()*10
-       qDot(3,i)=signedRand()*500  !rand()*10
+       qDot(1,i)=signedRand()*100 !rand()*10
+       qDot(2,i)=signedRand()*100 !rand()*10
+       qDot(3,i)=signedRand()*100  !rand()*10
        E(1)=E(1)+energy(qDot(:,i))
 
 
@@ -225,7 +245,7 @@ contains
     do i=1,tN/10,(tN/1000+1)
        PnTemp=avgPwithTheseManyIterations(i)
        temp1=errorPercentInPn(PnTemp(1:(tN-i)) )
-       !write(*,*) "Error in P",i,": ",temp1
+       write(*,*) "Error in P",i,": ",temp1
        
        if (temp1<maxPercentError) then
           write(*,*) "Window size is ",i

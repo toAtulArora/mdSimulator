@@ -43,7 +43,7 @@ contains
     !open a file to write the commands for gnuplot
     open(unit =2,file='command')
     if(present(filename)) then
-       write(2,*) "set terminal jpeg"
+       write(2,*) "set terminal pdf"
        write(2,*) "set output 'temp2d/",filename,"'"
     end if
 

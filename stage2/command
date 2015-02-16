@@ -1,3 +1,3 @@
- set terminal jpeg
- set output 'temp2d/averagedP.jpg'
+ set terminal pdf
+ set output 'temp2d/windowSize vs N'
  plot 'tempData.dat' w lp
