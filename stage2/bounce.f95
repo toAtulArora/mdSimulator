@@ -43,20 +43,30 @@ real, dimension(tN,2)::histOutput
 !real, dimension(1) :: plX,plY,plZ
 !put some number as seed
 
+!call seed_random_number(1)
+
 call startPlot()
 
 
 !write(*,*) "the largest integer i can store is ", huge(i)
 
-l=0
-do l=1,30
-!l=1
+!l=0
 !N=1000
-   !N=10**(l/8.0)
+open(unit=4,file='particleVsPdev')
+
+do l=1,48
+!l=1
+
+   N=10**(l/8.0)
    write (*,*) "Initializing initial q and qDot for ", N, " particles."
    call init()
    write (*,*) "Done!\n"
 
+   !histOutput = hist(qDot(2,1:N),10)
+   !write(*,*) "THIS IS WHAT I SENT: ",qDot(2,1:N)
+   !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
+
+   !write(*,*) qDot(2,1:N)
 
    call setXrange(0.0,real(boxSize))
    call setYrange(0.0,real(boxSize))
@@ -66,13 +76,25 @@ do l=1,30
    call iterateTheseManyTimes(tN)
    write (*,*) "Done iterating :) \n"
    !l=l+1
-   windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
-   windowSizeN(l)=N
+   
+   !windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
+   !windowSizeN(l)=N
 
-   histOutput=hist(P(1:tN),100)
-   call nextPlot2d(histOutput(1:100,1),histOutput(1:100,2))
+   !histOutput = hist(qDot(2,1:N),10)
+   !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
+
+   !write(*,*) q(2,1:N)
+
+   histOutput=hist(P(1:tN),50)
+   call nextPlot2d(histOutput(1:50,1),histOutput(1:50,2))
+!,rangeXstart=0,rangeXend=6e7)
+   write(4,*) N,stdDevFromHist(histOutput(1:50,:))
+
+   !histogram of x component of qDot
+
 end do
 
+close(4)
 
 !l=30
 !call plot2dSave(log(1.0*windowSizeN(1:l)),dt*windowSize(1:l),"windowSize vs N")
@@ -151,9 +173,9 @@ contains
        q(2,i)=rand()*boxSize
        q(3,i)=rand()*boxSize
 
-       qDot(1,i)=random_normal()*100 !rand()*10
-       qDot(2,i)=random_normal()*100 !rand()*10
-       qDot(3,i)=random_normal()*100  !rand()*10
+       qDot(1,i)=randomNormal()*1000 !rand()*10
+       qDot(2,i)=randomNormal()*1000 !rand()*10
+       qDot(3,i)=randomNormal()*1000  !rand()*10
 
        ! qDot(1,i)=signedRand()*100 !rand()*10
        ! qDot(2,i)=signedRand()*100 !rand()*10
@@ -170,7 +192,7 @@ contains
 
   subroutine iterateTheseManyTimes(numberOfIterations,plotGraphs)
     integer(kind=4), intent(in) :: numberOfIterations
-    logical, optional :: plotGraphs
+    integer, optional :: plotGraphs
     call initProgress()
     !write(*,'(A)') "\b[##-------]"
     do k=1,numberOfIterations
@@ -195,12 +217,20 @@ contains
           end do
           E(k)=E(k)+energy(qDot(:,i))
        end do
+       !THis is to save the location and position of particle 1
+       !at different times
        qT(:,k)=q(:,1)
        qDotT(:,k)=qDot(:,1)
        P(k)=sum(sum(pressureWall,dim=1),dim=1)
        if (present(plotGraphs)) then
           if(k<mN) then
-             call nextPlot3d(q(1,:),q(2,:),q(3,:))
+             if(plotGraphs==1) then
+
+                call nextPlot3d(q(1,:),q(2,:),q(3,:))
+             else if(plotGraphs==2) then
+                histOutput = hist(qDot(2,1:N),10)
+                call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
+             end if
           end if
        end if
        !write(*,'(f5.5A)',advance="no") real(k)/real(numberOfIterations),"\r"
