@@ -88,7 +88,8 @@ do l=1,48
    histOutput=hist(P(1:tN),50)
    call nextPlot2d(histOutput(1:50,1),histOutput(1:50,2))
 !,rangeXstart=0,rangeXend=6e7)
-   write(4,*) N,stdDevFromHist(histOutput(1:50,:))
+   avgP=sum(P)/real(size(P))
+   write(4,*) N,stdDevFromHist(histOutput(1:50,:)),stdDevFromHist(histOutput(1:50,:))/avgP
 
    !histogram of x component of qDot
 
