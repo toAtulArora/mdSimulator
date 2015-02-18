@@ -3,13 +3,13 @@ use gnuplot_fortran
 use random
 use stat
 implicit none
-real :: dt=0.001, radius
+real :: dt=0.001, radius=0.5
 !radius is the radius of the hard sphere
 !N is the number of particles
 !mN is the number of iterations for which a movie is made
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
-integer(kind=4) :: N=10
+integer(kind=4) :: N=5
 integer(kind=4), parameter :: tN=1000, mN=1000,Nmax=1000000
 
 !this is the volume
@@ -47,7 +47,7 @@ real, dimension(tN,2)::histOutput
 !call seed_random_number(1)
 
 
-radius = 0.1
+!radius = 4.0
 
 call startPlot()
 
@@ -160,6 +160,19 @@ contains
     end if
   end function signedRand
 
+  function lenSquare(vector)
+    real, dimension(3):: vector
+    real :: lenSquare
+    lenSquare=vector(1)*vector(1) + vector(2)*vector(2) + vector(3)*vector(3)
+  end function lenSquare
+
+  function length(vector)
+    real :: length
+    real, dimension(3) :: vector
+    length=sqrt(lenSquare(vector))
+  end function length
+
+  
   !To initialize the position and velocity of the particles with random values
   subroutine init()
     !intialize boxSize etc. required for iterating
@@ -174,13 +187,16 @@ contains
     t(:)=0
 
     do i=1,N
-       q(1,i)=rand()*(boxSize-(2*radius)) + radius
-       q(2,i)=rand()*(boxSize-(2*radius)) + radius
-       q(3,i)=rand()*(boxSize-(2*radius)) + radius
+       q(1,i)=((real(i)/real(N))*(boxSize-(2*radius))) + radius
+       q(2,i)=2*radius
+       q(3,i)=2*radius
+       !q(1,i)=rand()*(boxSize-(2*radius)) + radius
+       !q(2,i)=rand()*(boxSize-(2*radius)) + radius
+       !q(3,i)=rand()*(boxSize-(2*radius)) + radius
 
-       qDot(1,i)=randomNormal()*1000 !rand()*10
-       qDot(2,i)=randomNormal()*1000 !rand()*10
-       qDot(3,i)=randomNormal()*1000  !rand()*10
+       qDot(1,i)=100 !randomNormal()*1000 !rand()*10
+       qDot(2,i)=100 !randomNormal()*1000 !rand()*10
+       qDot(3,i)=100 !randomNormal()*1000  !rand()*10
 
        ! qDot(1,i)=signedRand()*100 !rand()*10
        ! qDot(2,i)=signedRand()*100 !rand()*10
@@ -198,6 +214,12 @@ contains
   subroutine iterateTheseManyTimes(numberOfIterations,plotGraphs)
     integer(kind=4), intent(in) :: numberOfIterations
     integer, optional :: plotGraphs
+    !integer :: i,ii,j
+    integer :: ii
+    real, dimension(3) :: qVector,qDotVector,unitqVector
+    logical :: collision
+    !the a,b,c are for solving a quadratic! heheh
+    real :: deltaT,a,b,c
     call initProgress()
     !write(*,'(A)') "\b[##-------]"
     do k=1,numberOfIterations
@@ -206,6 +228,7 @@ contains
        E(k)=0
        P(k)=0
        pressureWall(:,:)=0
+       !collision with the walls
        do i=1,N
           q(:,i)=q(:,i)+(qDot(:,i)*dt)
           do j=1,3
@@ -219,11 +242,78 @@ contains
              else if (q(j,i)<=radius) then
                 pressureWall(j,2)=pressureWall(j,2)-( (2*m*qDot(j,i)) / (dt*area) )
                 qDot(j,i)=-qDot(j,i)
-                q(j,i) = -q(j,i) 
+                q(j,i) = (2*radius)-q(j,i) 
              end if
           end do
           E(k)=E(k)+energy(qDot(:,i))
        end do
+
+       !collision among spheres
+       do i=1,N
+          do ii=1,N
+             if(i .ne. ii) then
+
+                collision=.false.
+                !weak test for collision
+                do j=1,3
+                   if (abs(q(j,i)-q(j,ii))<2*radius) then
+                      collision=.true.               
+                   end if
+                end do
+                !if weak test says collision, test more carefully
+                qVector=q(:,i)-q(:,ii)
+                qDotVector=qDot(:,i) - qDot(:,ii)
+                if (collision) then
+                   !if the distance between the centres is less than 2r
+                   !then COLLISION HAPPENED!               
+                   if (lenSquare(qVector)<4*(radius*radius)) then
+                      write(*,*) "There was a collision:" 
+
+                      !delta T is (2r-r')/v_rel
+                      !deltaT=((2*radius) - length(qVector))/length(qDotVector)
+                      !deltaT=(2.0*radius)/length(qDotVector)
+
+                      !delta T is the time elapsed since the actual collision
+                      !Courtesy Prashansa
+                      a=lenSquare(qDotVector)
+                      b=-2*(sum(qVector*qDotVector))
+                      c=lenSquare(qVector) -4*radius*radius
+                      deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
+
+                      write(*,*) "V1", qDot(:,i) ," and V2", qDot(:,ii)
+                      write(*,*) "It had actually heppened (:P) ", deltaT, " unit times ago"
+                      !nonsense done
+                      ! deltaT=((2*radius) - length(qVector))/length(qDot(:,i))
+                      ! q(:,i)=q(:,i) - sum(unitqVector(:)*qDot(:,i))*unitqVector(:)*deltaT
+                      ! deltaT=((2*radius) - length(qVector))/length(qDot(:,ii))                      
+                      ! q(:,ii)=q(:,ii) - sum(unitqVector(:)*qDot(:,ii))*unitqVector(:)*deltaT
+                      !end nonsense
+
+                      !Update position: use old velocity to get back to the point of collision
+                      q(:,i)=q(:,i) - (qDot(:,i)*deltaT)
+                      q(:,ii)=q(:,ii) - (qDot(:,ii)*deltaT)
+
+                      !update velocity
+
+                      write(*,*) "Velocity before", qDot(:,i)
+                      unitqVector=qVector/length(qVector)
+                      qDot(:,i)=qDot(:,i) - 2*sum(unitqVector(:)*qDot(:,i))*unitqVector(:)
+                      qDot(:,ii)=qDot(:,ii) - 2*sum(unitqVector(:)*qDot(:,ii))*unitqVector(:)
+                      write(*,*) "Velocity after: ", qDot(:,i)
+                      !qDotVector
+
+                      !Update position: use corrected velocity to update to where you should've been, had the collision been detected when it happened! Damange control..hehe
+                      q(:,i)=q(:,i) + (qDot(:,i)*deltaT)
+                      q(:,ii)=q(:,ii) + (qDot(:,ii)*deltaT)
+                      
+                   end if
+
+                end if
+             end if
+          end do
+       end do
+
+
        !THis is to save the location and position of particle 1
        !at different times
        qT(:,k)=q(:,1)

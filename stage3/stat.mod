@@ -1,4 +1,4 @@
-GFORTRAN module version '9' created from stat.f95
+GFORTRAN module version '10' created from stat.f95
 MD5:b2059c85c340b5b8ebec5f3494b000c1 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
