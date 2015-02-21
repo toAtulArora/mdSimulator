@@ -22,11 +22,12 @@ contains
     rangeEnd(3)=rangeEndIn
   end subroutine setZrange
 
-
-  subroutine plot2dSave(x,y,filename,rangeXstart,rangeXend,rangeYstart,rangeYend)
+!picFormat=something means PDF, nothing means JPEG
+  subroutine plot2dSave(x,y,filename,rangeXstart,rangeXend,rangeYstart,rangeYend,picFormat)
     real, intent(in), dimension(:) :: x,y
     character(len=*), intent(in),optional :: filename
-    real, intent(in), optional :: rangeXstart, rangeXend, rangeYstart, rangeYend
+    real, intent(in), optional :: rangeXstart, rangeXend, rangeYstart, rangeYend    
+    integer, optional :: picFormat
     integer :: size_x, size_y,i
     size_x = size(x)
     size_y = size(y)
@@ -43,7 +44,11 @@ contains
     !open a file to write the commands for gnuplot
     open(unit =2,file='command')
     if(present(filename)) then
-       write(2,*) "set terminal pdf"
+       if(present(picFormat)) then
+          write(2,*) "set terminal pdf"
+       else
+          write(2,*) "set terminal jpeg"
+       end if
        write(2,*) "set output 'temp2d/",filename,"'"
     end if
 

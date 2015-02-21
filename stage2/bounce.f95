@@ -1,6 +1,7 @@
 program bouncer
 use gnuplot_fortran
-
+use random
+use stat
 implicit none
 real :: dt=0.001
 !N is the number of particles
@@ -36,6 +37,9 @@ real, dimension(3,tN) :: qT,qDotT
 real, dimension(3,Nmax) :: q
 real, dimension(3,Nmax) :: qDot
 integer(kind=4) :: k,i,j,l
+
+real, dimension(tN,2)::histOutput
+
 !real, dimension(1) :: plX,plY,plZ
 !put some number as seed
 
@@ -46,7 +50,9 @@ call startPlot()
 
 l=0
 do l=1,30
-   N=10**(l/8.0)
+!l=1
+!N=1000
+   !N=10**(l/8.0)
    write (*,*) "Initializing initial q and qDot for ", N, " particles."
    call init()
    write (*,*) "Done!\n"
@@ -62,10 +68,14 @@ do l=1,30
    !l=l+1
    windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
    windowSizeN(l)=N
+
+   histOutput=hist(P(1:tN),100)
+   call nextPlot2d(histOutput(1:100,1),histOutput(1:100,2))
 end do
 
-l=30
-call plot2dSave(log(1.0*windowSizeN(1:l)),dt*windowSize(1:l),"windowSize vs N")
+
+!l=30
+!call plot2dSave(log(1.0*windowSizeN(1:l)),dt*windowSize(1:l),"windowSize vs N")
 
 !PnTemp
 
@@ -102,6 +112,8 @@ call plot2dSave(log(1.0*windowSizeN(1:l)),dt*windowSize(1:l),"windowSize vs N")
 
 write (*,*) "Finalizing visualizaiton..."
 call endPlot()
+
+
 write (*,*) "Done \n"
 
 write (*,*) "---------\n All done \n"
@@ -126,10 +138,10 @@ contains
     !intialize boxSize etc. required for iterating
     boxSize=volume**(1.0/3.0)
     area=volume**(2.0/3.0)
-
+    
     !box size is between 0 and 1
-    call srand(1000)
-
+    !call srand(1000)
+    
     !initialize particles to be at some random location
     E(1)=0
     t(:)=0
@@ -139,9 +151,13 @@ contains
        q(2,i)=rand()*boxSize
        q(3,i)=rand()*boxSize
 
-       qDot(1,i)=signedRand()*100 !rand()*10
-       qDot(2,i)=signedRand()*100 !rand()*10
-       qDot(3,i)=signedRand()*100  !rand()*10
+       qDot(1,i)=random_normal()*100 !rand()*10
+       qDot(2,i)=random_normal()*100 !rand()*10
+       qDot(3,i)=random_normal()*100  !rand()*10
+
+       ! qDot(1,i)=signedRand()*100 !rand()*10
+       ! qDot(2,i)=signedRand()*100 !rand()*10
+       ! qDot(3,i)=signedRand()*100  !rand()*10
        E(1)=E(1)+energy(qDot(:,i))
 
 

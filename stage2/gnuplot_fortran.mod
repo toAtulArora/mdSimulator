@@ -1,5 +1,5 @@
 GFORTRAN module version '10' created from gnuplot_fortran.f95
-MD5:655b572d70b30a12a97cdc4f70af249a -- If you edit this, you'll get what you deserve.
+MD5:70d6082fc8ccb7a6a989eb6a58240a41 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
@@ -37,28 +37,28 @@ MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
 0 UNKNOWN ()) 16 0 (17 18) () 0 () () () 0 0)
 19 'plot2dsave' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
 MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
-0 UNKNOWN ()) 20 0 (21 22 23 24 25 26 27) () 0 () () () 0 0)
-28 'plot3d' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
+0 UNKNOWN ()) 20 0 (21 22 23 24 25 26 27 28) () 0 () () () 0 0)
+29 'plot3d' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
 MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
-0 UNKNOWN ()) 29 0 (30 31 32 33 34) () 0 () () () 0 0)
-35 'rangeend' 'gnuplot_fortran' '' 1 ((VARIABLE UNKNOWN-INTENT
+0 UNKNOWN ()) 30 0 (31 32 33 34 35) () 0 () () () 0 0)
+36 'rangeend' 'gnuplot_fortran' '' 1 ((VARIABLE UNKNOWN-INTENT
 UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 DIMENSION) (REAL 4 0 0 0 REAL ())
 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (
 CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '3')) 0 () () () 0 0)
-36 'rangestart' 'gnuplot_fortran' '' 1 ((VARIABLE UNKNOWN-INTENT
+37 'rangestart' 'gnuplot_fortran' '' 1 ((VARIABLE UNKNOWN-INTENT
 UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 DIMENSION) (REAL 4 0 0 0 REAL ())
 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (
 CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '3')) 0 () () () 0 0)
-37 'setxrange' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ()) 38
-0 (39 40) () 0 () () () 0 0)
-41 'setyrange' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ()) 42
-0 (43 44) () 0 () () () 0 0)
-45 'setzrange' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ()) 46
-0 (47 48) () 0 () () () 0 0)
-49 'startplot' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
+38 'setxrange' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ()) 39
+0 (40 41) () 0 () () () 0 0)
+42 'setyrange' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ()) 43
+0 (44 45) () 0 () () () 0 0)
+46 'setzrange' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ()) 47
+0 (48 49) () 0 () () () 0 0)
+50 'startplot' 'gnuplot_fortran' '' 1 ((PROCEDURE UNKNOWN-INTENT
 MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0
 0 () () 0 () () () 0 0)
 8 'x' '' '' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
@@ -99,37 +99,40 @@ OPTIONAL DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 OPTIONAL DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 27 'rangeyend' '' '' 20 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 OPTIONAL DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-30 'x' '' '' 29 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+28 'picformat' '' '' 20 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 ()
+() () 0 0)
+31 'x' '' '' 30 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (CONSTANT (
 INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-31 'y' '' '' 29 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+32 'y' '' '' 30 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (CONSTANT (
 INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-32 'z' '' '' 29 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+33 'z' '' '' 30 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (CONSTANT (
 INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-33 'filename' '' '' 29 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+34 'filename' '' '' 30 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 DIMENSION DUMMY) (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
 0 INTEGER ()) 0 '1'))) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0
 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '13')) 0 ()
 () () 0 0)
-34 'angle' '' '' 29 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+35 'angle' '' '' 30 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
 (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-39 'rangestartin' '' '' 38 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
+40 'rangestartin' '' '' 39 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
 0 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-40 'rangeendin' '' '' 38 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+41 'rangeendin' '' '' 39 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-43 'rangestartin' '' '' 42 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
+44 'rangestartin' '' '' 43 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
 0 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-44 'rangeendin' '' '' 42 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+45 'rangeendin' '' '' 43 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-47 'rangestartin' '' '' 46 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
+48 'rangestartin' '' '' 47 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
 0 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-48 'rangeendin' '' '' 46 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+49 'rangeendin' '' '' 47 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 DUMMY) (REAL 4 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 )
 
 ('endplot' 0 2 'filename' 0 3 'gnuplot_fortran' 0 4 'graphcount' 0 5
 'nextplot2d' 0 6 'nextplot3d' 0 10 'plot2d' 0 15 'plot2dsave' 0 19
-'plot3d' 0 28 'rangeend' 0 35 'rangestart' 0 36 'setxrange' 0 37
-'setyrange' 0 41 'setzrange' 0 45 'startplot' 0 49)
+'plot3d' 0 29 'rangeend' 0 36 'rangestart' 0 37 'setxrange' 0 38
+'setyrange' 0 42 'setzrange' 0 46 'startplot' 0 50)

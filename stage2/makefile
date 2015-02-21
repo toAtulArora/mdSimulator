@@ -5,7 +5,7 @@
 FC = gfortran -fbackslash
 
 #source files, use the most dependent in the end
-SRCS = $(addsuffix .o, gnuplot_fortran bounce)
+SRCS = $(addsuffix .o, stat randomAll gnuplot_fortran bounce)
 
 PROGRAM = bounce
 
