@@ -9,20 +9,23 @@ real :: dt=0.001
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
 integer(kind=4) :: N=1000
-integer(kind=4), parameter :: tN=1000, mN=500,Nmax=1000000
+integer(kind=4), parameter :: tN=100, mN=500,Nmax=1000000
 
-!this is the volume
+!this is the volume (in m^3)
 real :: volume=10
-!this is the mass
+!this is the mass of 1 gass molecule (in Kg)
+!real, parameter :: m=1.673534e10-24
 real, parameter :: m = 1
 
+!boltzman constant in joules per kelvin
+real, parameter :: Kb=1.3806488e-23
 
 real :: boxSize
 real :: area
 real :: time=0
-!t is time
-!E is energy
-!P is pressure (instaneous)
+!t is time (in seconds)
+!E is energy (in Joules)
+!P is pressure (instaneous) (N per m^2 = Pascals)
 !Pw is windowed pressure (averaged over optimal window size (0.1 percent)
 real, dimension(tN) :: t,E,P,P2,P3,P4,Pw
 
@@ -30,6 +33,7 @@ integer, dimension(10000) :: windowSize,windowSizeN
 !integer :: pWindowSize = 1
 real :: temp1
 real :: avgP
+real :: avgE
 !there're six walls, two normal to each of the 3 axis
 real, dimension(3,2) :: pressureWall
 
@@ -52,7 +56,8 @@ call startPlot()
 
 !l=0
 !N=1000
-open(unit=4,file='particleVsPdev')
+open(unit=4,file='PVminusNKTvsN')
+open(unit=5,file='PavgVsN')
 
 do l=1,48
 !l=1
@@ -62,12 +67,6 @@ do l=1,48
    call init()
    write (*,*) "Done!\n"
 
-   !histOutput = hist(qDot(2,1:N),10)
-   !write(*,*) "THIS IS WHAT I SENT: ",qDot(2,1:N)
-   !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
-
-   !write(*,*) qDot(2,1:N)
-
    call setXrange(0.0,real(boxSize))
    call setYrange(0.0,real(boxSize))
    call setZrange(0.0,real(boxSize))
@@ -75,26 +74,24 @@ do l=1,48
    write (*,*) "Starting iterations.."
    call iterateTheseManyTimes(tN)
    write (*,*) "Done iterating :) \n"
-   !l=l+1
    
-   !windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
-   !windowSizeN(l)=N
+   avgP=sum(P(1:tN))/real(tN)
+   !volume is known
+   avgE=sum(E(1:tN))/real(tN)
+   !temp1=avgP*volume - (N*Kb*temperature(avgE))
+   temp1=avgP*volume - (2/3.0)*avgE
+   write(4,*) N,temp1,avgP,avgE
 
-   !histOutput = hist(qDot(2,1:N),10)
-   !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
-
-   !write(*,*) q(2,1:N)
-
+   !PLOTTING ERROR IN PRESSURE WITH NUMBER OF PARTICLES
    histOutput=hist(P(1:tN),50)
    call nextPlot2d(histOutput(1:50,1),histOutput(1:50,2))
-!,rangeXstart=0,rangeXend=6e7)
-   avgP=sum(P)/real(size(P))
-   write(4,*) N,stdDevFromHist(histOutput(1:50,:)),stdDevFromHist(histOutput(1:50,:))/avgP
+   avgP=sum(P(1:tN))/real(tN)
+   write(5,*) N,stdDevFromHist(histOutput(1:50,:)),stdDevFromHist(histOutput(1:50,:))/avgP
 
    !histogram of x component of qDot
 
 end do
-
+close(5)
 close(4)
 
 !l=30
@@ -147,6 +144,11 @@ contains
     real :: energy
     energy = ( (x(1)*x(1)) + (x(2)*x(2)) + (x(3)*x(3)) ) * (m/2.0)
   end function energy
+  
+  function temperature(totalEnergy)
+    real :: temperature, totalEnergy
+    temperature=((2/3.0)*(totalEnergy))/N*Kb
+  end function temperature
 
   function signedRand()
     real :: signedRand
@@ -174,6 +176,8 @@ contains
        q(2,i)=rand()*boxSize
        q(3,i)=rand()*boxSize
 
+       !on an average, the velocity will be 0,
+       !max velocity will be 500
        qDot(1,i)=randomNormal()*1000 !rand()*10
        qDot(2,i)=randomNormal()*1000 !rand()*10
        qDot(3,i)=randomNormal()*1000  !rand()*10
