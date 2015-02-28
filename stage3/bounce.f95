@@ -9,8 +9,8 @@ real :: dt=0.001, radius
 !mN is the number of iterations for which a movie is made
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
-integer(kind=4) :: N=1
-integer(kind=4), parameter :: tN=500, mN=50,Nmax=1000000
+integer(kind=4) :: N=10
+integer(kind=4), parameter :: tN=1000, mN=1000,Nmax=1000000
 
 !this is the volume
 real :: volume=1000
@@ -174,9 +174,9 @@ contains
     t(:)=0
 
     do i=1,N
-       q(1,i)=rand()*boxSize
-       q(2,i)=rand()*boxSize
-       q(3,i)=rand()*boxSize
+       q(1,i)=rand()*(boxSize-(2*radius)) + radius
+       q(2,i)=rand()*(boxSize-(2*radius)) + radius
+       q(3,i)=rand()*(boxSize-(2*radius)) + radius
 
        qDot(1,i)=randomNormal()*1000 !rand()*10
        qDot(2,i)=randomNormal()*1000 !rand()*10
@@ -214,7 +214,7 @@ contains
              if (q(j,i)>=boxSize-radius) then
                 pressureWall(j,1)=pressureWall(j,1)+ ( (2*m*qDot(j,i))/ (dt*area) )
                 qDot(j,i)=-qDot(j,i)
-                q(j,i)=q(j,i)-2*(q(j,i)-boxSize)
+                q(j,i)=q(j,i)-2*(q(j,i)-(boxSize-radius))
              !else if (q(j,i) <= 0.0) then
              else if (q(j,i)<=radius) then
                 pressureWall(j,2)=pressureWall(j,2)-( (2*m*qDot(j,i)) / (dt*area) )
@@ -233,7 +233,7 @@ contains
           if(k<mN) then
              if(plotGraphs==1) then
 
-                call nextPlot3d(q(1,:),q(2,:),q(3,:))
+                call nextPlot3d(q(1,1:N),q(2,1:N),q(3,1:N))
              else if(plotGraphs==2) then
                 histOutput = hist(qDot(2,1:N),10)
                 call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
