@@ -253,13 +253,16 @@ contains
     real :: deltaT,a,b,c
     !this is for neighbour searching
     integer, parameter :: nPrec=100,density=10
-    integer(kind=4), dimension(0:nPrec,0:nPrec,0:nPrec,0:density)::nMat=0
+    integer :: allocateStatus
+    integer, dimension(:,:,:,:), allocatable :: nMat
+    !integer(kind=4), dimension(0:nPrec,0:nPrec,0:nPrec,0:density)::nMat=0
     integer(kind=4), dimension (0:density) :: nMatCurr=0
     integer(kind=4) :: densityInBox,ni
     !call nMatPrettyPrint(nMat)
     call initProgress()
     !write(*,'(A)') "\b[##-------]"
-
+    allocate(nMat(0:nPrec,0:nPrec,0:nPrec,0:density),stat=allocateStatus)
+    if(allocateStatus /= 0) stop "Not enough memory :("
     do k=1,numberOfIterations
        t(k)=time
        time=time+dt
