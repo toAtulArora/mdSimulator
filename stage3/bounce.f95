@@ -3,16 +3,17 @@ use gnuplot_fortran
 use random
 use stat
 implicit none
-real :: dt=0.001
+real :: dt=0.001, radius
+!radius is the radius of the hard sphere
 !N is the number of particles
 !mN is the number of iterations for which a movie is made
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
-integer(kind=4) :: N=1000
-integer(kind=4), parameter :: tN=1000, mN=500,Nmax=1000000
+integer(kind=4) :: N=1
+integer(kind=4), parameter :: tN=500, mN=50,Nmax=1000000
 
 !this is the volume
-real :: volume=10
+real :: volume=1000
 !this is the mass
 real, parameter :: m = 1
 
@@ -45,6 +46,9 @@ real, dimension(tN,2)::histOutput
 
 !call seed_random_number(1)
 
+
+radius = 0.1
+
 call startPlot()
 
 
@@ -54,10 +58,10 @@ call startPlot()
 !N=1000
 open(unit=4,file='particleVsPdev')
 
-do l=1,48
+!do l=1,48
 !l=1
 
-   N=10**(l/8.0)
+   !N=10**(l/8.0)
    write (*,*) "Initializing initial q and qDot for ", N, " particles."
    call init()
    write (*,*) "Done!\n"
@@ -73,7 +77,7 @@ do l=1,48
    call setZrange(0.0,real(boxSize))
 
    write (*,*) "Starting iterations.."
-   call iterateTheseManyTimes(tN)
+   call iterateTheseManyTimes(tN,1)
    write (*,*) "Done iterating :) \n"
    !l=l+1
    
@@ -93,7 +97,7 @@ do l=1,48
 
    !histogram of x component of qDot
 
-end do
+!end do
 
 close(4)
 
@@ -206,11 +210,13 @@ contains
           q(:,i)=q(:,i)+(qDot(:,i)*dt)
           do j=1,3
              !if (q(j,i) >= 1.0) then
-             if (q(j,i) >= boxSize) then
+             !if (q(j,i) >= boxSize) then
+             if (q(j,i)>=boxSize-radius) then
                 pressureWall(j,1)=pressureWall(j,1)+ ( (2*m*qDot(j,i))/ (dt*area) )
                 qDot(j,i)=-qDot(j,i)
                 q(j,i)=q(j,i)-2*(q(j,i)-boxSize)
-             else if (q(j,i) <= 0.0) then
+             !else if (q(j,i) <= 0.0) then
+             else if (q(j,i)<=radius) then
                 pressureWall(j,2)=pressureWall(j,2)-( (2*m*qDot(j,i)) / (dt*area) )
                 qDot(j,i)=-qDot(j,i)
                 q(j,i) = -q(j,i) 

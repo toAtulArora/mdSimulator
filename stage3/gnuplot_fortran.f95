@@ -62,7 +62,8 @@ contains
 
     !write(2,*) "set yrange [0:1]"
     
-    write(2,*) "plot 'tempData.dat' w lp"
+    !write(2,*) "plot 'tempData.dat' w lp"
+    write(2,*) "plot 'tempData.dat' with circles"
     close(2)
     
     if (present(filename)) then
@@ -97,7 +98,8 @@ contains
     !write(2,*) "set output 'temp/",filename,"'"
     !write(2,*) "set yrange [0:1]"
     !write(*,*) "The filename you gave was: ", filename
-    write(2,*) "plot 'tempData.dat' w lp"
+    !write(2,*) "plot 'tempData.dat' w lp"
+    write(2,*) "plot 'tempData.dat' with circles"
     close(2)
 
     !call system ("gnuplot 'command'")
@@ -130,14 +132,19 @@ contains
     write(2,*) "set output 'temp/",filename,"'"
     !write(*,"(a)",advance="no") "#"
     !, filename
-    write(2,*) "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0"
-    write(2,*) "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0"
-    write(2,*) "set grid ztics lc rgb '#bbbbbb' lw 1 lt 0"
+    !write(2,*) "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0"
+    !write(2,*) "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0"
+    !write(2,*) "set grid ztics lc rgb '#bbbbbb' lw 1 lt 0"
     write(2,*) "set view 60,",angle
+    write(2,*) "set style circle radius 1.2"
+    !write(2,*) "unset xtics"
+    !write(2,*) "unset ytics"
+    !write(2,*) "unset ztics"
     write(2,*) "set xrange [0:",rangeEnd(1),"]"
     write(2,*) "set yrange [0:",rangeEnd(2),"]"
     write(2,*) "set zrange [0:",rangeEnd(3),"]"
-    write(2,*) "splot 'tempData.dat' using 1:2:3"
+    write(2,*) "set style fill solid 1.0"
+    write(2,*) "splot 'tempData.dat' using 1:2:3 with circles"
     close(2)
 
     
