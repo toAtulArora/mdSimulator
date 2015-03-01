@@ -15,6 +15,10 @@ contains
     dataMin = minval(data)
     !write(*,*) "THIS IS WHAT GOT SENT",data
     !write(*,*) dataMax,dataMin
+    if(dataMax==dataMin) then
+       dataMax=dataMax+0.1
+       dataMin=dataMin-0.1
+    end if
     binSize = (dataMax - dataMin)/real(numberOfBins)    
     ! hist(1,1)=0
     ! hist(1,2)=0

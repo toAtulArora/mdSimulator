@@ -1,6 +1,6 @@
 module gnuplot_fortran
   implicit none
-  integer :: graphCount=0
+  integer :: graph2dCount=0, graph3dCount=0
   character(13) :: fileName
   real, dimension (3) :: rangeStart=(/0.0,0.0,0.0/),rangeEnd=(/1.0,1.0,1.0/)
 contains
@@ -23,11 +23,11 @@ contains
   end subroutine setZrange
 
 !picFormat=something means PDF, nothing means JPEG
-  subroutine plot2dSave(x,y,filename,rangeXstart,rangeXend,rangeYstart,rangeYend,picFormat)
+  subroutine plot2dSave(x,y,filename,rangeXstart,rangeXend,rangeYstart,rangeYend,picFormat,verbose)
     real, intent(in), dimension(:) :: x,y
     character(len=*), intent(in),optional :: filename
     real, intent(in), optional :: rangeXstart, rangeXend, rangeYstart, rangeYend    
-    integer, optional :: picFormat
+    integer, optional :: picFormat,verbose
     integer :: size_x, size_y,i
     size_x = size(x)
     size_y = size(y)
@@ -62,13 +62,14 @@ contains
 
     !write(2,*) "set yrange [0:1]"
     
-    !write(2,*) "plot 'tempData.dat' w lp"
-    write(2,*) "plot 'tempData.dat' with circles"
+    write(2,*) "plot 'tempData.dat' w lp"
     close(2)
     
     if (present(filename)) then
        call system ("gnuplot 'command'")
-       write(*,*) "'",filename,"' has been saved."
+       if(present(verbose)) then
+          write(*,*) "'",filename,"' has been saved."
+       end if
     else
        call system ("gnuplot -persist 'command'")
     end if
@@ -98,8 +99,7 @@ contains
     !write(2,*) "set output 'temp/",filename,"'"
     !write(2,*) "set yrange [0:1]"
     !write(*,*) "The filename you gave was: ", filename
-    !write(2,*) "plot 'tempData.dat' w lp"
-    write(2,*) "plot 'tempData.dat' with circles"
+    write(2,*) "plot 'tempData.dat' w lp"
     close(2)
 
     !call system ("gnuplot 'command'")
@@ -132,19 +132,14 @@ contains
     write(2,*) "set output 'temp/",filename,"'"
     !write(*,"(a)",advance="no") "#"
     !, filename
-    !write(2,*) "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0"
-    !write(2,*) "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0"
-    !write(2,*) "set grid ztics lc rgb '#bbbbbb' lw 1 lt 0"
+    write(2,*) "set grid ytics lc rgb '#bbbbbb' lw 1 lt 0"
+    write(2,*) "set grid xtics lc rgb '#bbbbbb' lw 1 lt 0"
+    write(2,*) "set grid ztics lc rgb '#bbbbbb' lw 1 lt 0"
     write(2,*) "set view 60,",angle
-    write(2,*) "set style circle radius 1.2"
-    !write(2,*) "unset xtics"
-    !write(2,*) "unset ytics"
-    !write(2,*) "unset ztics"
     write(2,*) "set xrange [0:",rangeEnd(1),"]"
     write(2,*) "set yrange [0:",rangeEnd(2),"]"
     write(2,*) "set zrange [0:",rangeEnd(3),"]"
-    write(2,*) "set style fill solid 1.0"
-    write(2,*) "splot 'tempData.dat' using 1:2:3 with circles"
+    write(2,*) "splot 'tempData.dat' using 1:2:3"
     close(2)
 
     
@@ -154,16 +149,16 @@ contains
 
   subroutine nextPlot2d(x,y)
     real, intent(in), dimension(:) :: x,y
-    graphCount = graphCount+1
-    write(fileName,'(a,i4.4,a)') 'file',graphCount,'.jpeg'
+    graph2dCount = graph2dCount+1
+    write(fileName,'(a,i4.4,a)') 'file',graph2dCount,'.jpeg'
     call plot2dSave(x,y,fileName)
   end subroutine nextPlot2d
 
   subroutine nextPlot3d(x,y,z)
     real, intent(in), dimension(:) :: x,y,z
-    graphCount = graphCount+1
-    write(fileName,'(a,i4.4,a)') 'file',graphCount,'.jpeg'
-    call plot3d(x,y,z,fileName,mod(real(graphcount),360.0) )
+    graph3dCount = graph3dCount+1
+    write(fileName,'(a,i4.4,a)') 'file',graph3dCount,'.jpeg'
+    call plot3d(x,y,z,fileName,mod(real(graph3dcount),360.0) )
   end subroutine nextPlot3d
 
   subroutine startPlot()
@@ -171,11 +166,15 @@ contains
     call system ("mkdir temp")    
     call system ("rm -r temp2d")
     call system ("mkdir temp2d")
-    graphCount=0
+    graph2dCount=0
+    graph3dCount=0
   end subroutine startPlot
   subroutine endPlot()
-    write (*,*) "Converting to avi.."
-    call system ("avconv -i 'temp/file%04d.jpeg' result.avi")
+    write (*,*) "Converting 3d graphs to avi.."
+    call system ("avconv -i 'temp/file%04d.jpeg' result3d.avi")
+    write(*,*) "Converting 2d graphs to avi.."
+    call system ("avconv -i 'temp2d/file%04d.jpeg' result2d.avi")
+
     !write (*,*) "Done!"
     !TODO: command for creating a movie and cleanup
   end subroutine endPlot

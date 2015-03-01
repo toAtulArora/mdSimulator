@@ -10,7 +10,7 @@ real :: dt=0.001, radius=0.5
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
 integer(kind=4) :: N=5
-integer(kind=4), parameter :: tN=1000, mN=1000,Nmax=1000000
+integer(kind=4), parameter :: tN=1000, mN=500,Nmax=1000000
 
 !this is the volume
 real :: volume=1000
@@ -56,7 +56,7 @@ call startPlot()
 
 !l=0
 !N=1000
-open(unit=4,file='particleVsPdev')
+!open(unit=4,file='energyHist')
 
 !do l=1,48
 !l=1
@@ -77,7 +77,8 @@ open(unit=4,file='particleVsPdev')
    call setZrange(0.0,real(boxSize))
 
    write (*,*) "Starting iterations.."
-   call iterateTheseManyTimes(tN,1)
+
+   call iterateTheseManyTimes(tN,1,1)
    write (*,*) "Done iterating :) \n"
    !l=l+1
    
@@ -89,11 +90,14 @@ open(unit=4,file='particleVsPdev')
 
    !write(*,*) q(2,1:N)
 
-   histOutput=hist(P(1:tN),50)
-   call nextPlot2d(histOutput(1:50,1),histOutput(1:50,2))
+   histOutput=hist(E(1:tN),50)
+   !write(*,*) E(1:tN)
+   !call nextPlot2d(histOutput(1:50,1),histOutput(1:50,2))
+   !call plot2dSave(histOutput(1:50,1),histOutput(1:50,2),"EnergyHist.jpg")
+   
 !,rangeXstart=0,rangeXend=6e7)
-   avgP=sum(P)/real(size(P))
-   write(4,*) N,stdDevFromHist(histOutput(1:50,:)),stdDevFromHist(histOutput(1:50,:))/avgP
+   !avgE=sum(E)/real(tN)
+   !write(4,*) N,stdDevFromHist(histOutput(1:50,:)),stdDevFromHist(histOutput(1:50,:))/avgP
 
    !histogram of x component of qDot
 
@@ -117,11 +121,15 @@ close(4)
 
 !NOT MAKING GRAPHS FOR NOW...
 ! write (*,*) "Generating graphs.."
-!  call plot2dSave(t,qT(1,:),"qT1.pdf")
+call plot2dSave(t(1:tN),qT(3,1:tN),"qT3.pdf",picFormat=1)
+call plot2dSave(t(1:tN),qT(2,1:tN),"qT2.pdf",picFormat=1)
+call plot2dSave(t(1:tN),qT(1,1:tN),"qT1.pdf",picFormat=1)
 !  call plot2dSave(t,qT(2,:),"qT2.pdf")
 !  call plot2dSave(t,qT(3,:),"qT3.pdf")
 !  call plot2dSave(t,E,"energyT.pdf")
-!  call plot2dSave(t,qDotT(1,:),"qDotT1.pdf")
+call plot2dSave(t(1:tN),qDotT(3,1:tN),"qDotT3.pdf",picFormat=1)
+call plot2dSave(t(1:tN),qDotT(2,1:tN),"qDotT2.pdf",picFormat=1)
+call plot2dSave(t(1:tN),qDotT(1,1:tN),"qDotT1.pdf",picFormat=1)
 !  call plot2dSave(t,qDotT(2,:),"qDotT2.pdf")
 !  call plot2dSave(t,qDotT(3,:),"qDotT3.pdf")
 ! call plot2dSave(t,P,"pressureT.pdf")
@@ -194,9 +202,9 @@ contains
        !q(2,i)=rand()*(boxSize-(2*radius)) + radius
        !q(3,i)=rand()*(boxSize-(2*radius)) + radius
 
-       qDot(1,i)=100 !randomNormal()*1000 !rand()*10
-       qDot(2,i)=100 !randomNormal()*1000 !rand()*10
-       qDot(3,i)=100 !randomNormal()*1000  !rand()*10
+       qDot(1,i)=randomNormal()*100000 !rand()*10
+       qDot(2,i)=randomNormal()*100000 !rand()*10
+       qDot(3,i)=randomNormal()*100000  !rand()*10
 
        ! qDot(1,i)=signedRand()*100 !rand()*10
        ! qDot(2,i)=signedRand()*100 !rand()*10
@@ -211,12 +219,12 @@ contains
     end do
   end subroutine init
 
-  subroutine iterateTheseManyTimes(numberOfIterations,plotGraphs)
+  subroutine iterateTheseManyTimes(numberOfIterations,collisionSpheres,plotGraphs)
     integer(kind=4), intent(in) :: numberOfIterations
-    integer, optional :: plotGraphs
+    integer, optional :: plotGraphs,collisionSpheres
     !integer :: i,ii,j
     integer :: ii
-    real, dimension(3) :: qVector,qDotVector,unitqVector
+    real, dimension(3) :: qVector,qDotVector,unitqVector,qDotNewI,qDotNewII
     logical :: collision
     !the a,b,c are for solving a quadratic! heheh
     real :: deltaT,a,b,c
@@ -249,15 +257,18 @@ contains
        end do
 
        !collision among spheres
-       do i=1,N
-          do ii=1,N
-             if(i .ne. ii) then
+       if (present(collisionSpheres)) then
+          if (collisionSpheres==1) then
+          do i=1,N
+             do ii=i+1,N
+             !if(i .ne. ii) then
 
                 collision=.false.
                 !weak test for collision
                 do j=1,3
                    if (abs(q(j,i)-q(j,ii))<2*radius) then
-                      collision=.true.               
+                      collision=.true.
+                      exit
                    end if
                 end do
                 !if weak test says collision, test more carefully
@@ -267,7 +278,7 @@ contains
                    !if the distance between the centres is less than 2r
                    !then COLLISION HAPPENED!               
                    if (lenSquare(qVector)<4*(radius*radius)) then
-                      write(*,*) "There was a collision:" 
+                      !write(*,*) "There was a collision:" 
 
                       !delta T is (2r-r')/v_rel
                       !deltaT=((2*radius) - length(qVector))/length(qDotVector)
@@ -280,8 +291,8 @@ contains
                       c=lenSquare(qVector) -4*radius*radius
                       deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
 
-                      write(*,*) "V1", qDot(:,i) ," and V2", qDot(:,ii)
-                      write(*,*) "It had actually heppened (:P) ", deltaT, " unit times ago"
+                      !write(*,*) "V1", qDot(:,i) ," and V2", qDot(:,ii)
+                      !write(*,*) "It had actually heppened (:P) ", deltaT, " unit times ago"
                       !nonsense done
                       ! deltaT=((2*radius) - length(qVector))/length(qDot(:,i))
                       ! q(:,i)=q(:,i) - sum(unitqVector(:)*qDot(:,i))*unitqVector(:)*deltaT
@@ -295,11 +306,17 @@ contains
 
                       !update velocity
 
-                      write(*,*) "Velocity before", qDot(:,i)
+                      !write(*,*) "Velocity before", qDot(:,i)
                       unitqVector=qVector/length(qVector)
-                      qDot(:,i)=qDot(:,i) - 2*sum(unitqVector(:)*qDot(:,i))*unitqVector(:)
-                      qDot(:,ii)=qDot(:,ii) - 2*sum(unitqVector(:)*qDot(:,ii))*unitqVector(:)
-                      write(*,*) "Velocity after: ", qDot(:,i)
+                      qDotNewI=qDot(:,i)-sum(unitqVector*qDot(:,i))*unitqVector+sum(unitqVector*qDot(:,ii))*unitqVector
+                      qDotNewII=qDot(:,ii)-sum(unitqVector*qDot(:,ii))*unitqVector+sum(unitqVector*qDot(:,i))*unitqVector
+                      ! qDot(:,i)=qDot(:,i) - 2*sum(unitqVector*qDot(:,i))*unitqVector 
+                      ! qDot(:,ii)=qDot(:,ii) - 2*sum(unitqVector*qDot(:,ii))*unitqVector
+
+                      qDot(:,i)=qDotNewI
+                      qDot(:,ii)=qDotNewII
+
+                      !write(*,*) "Velocity after: ", qDot(:,i)
                       !qDotVector
 
                       !Update position: use corrected velocity to update to where you should've been, had the collision been detected when it happened! Damange control..hehe
@@ -309,10 +326,11 @@ contains
                    end if
 
                 end if
-             end if
+             !end if
+             end do
           end do
-       end do
-
+          end if
+       end if
 
        !THis is to save the location and position of particle 1
        !at different times
@@ -321,12 +339,13 @@ contains
        P(k)=sum(sum(pressureWall,dim=1),dim=1)
        if (present(plotGraphs)) then
           if(k<mN) then
-             if(plotGraphs==1) then
+             if(plotGraphs==1 .or. plotGraphs==3) then
 
                 call nextPlot3d(q(1,1:N),q(2,1:N),q(3,1:N))
-             else if(plotGraphs==2) then
-                histOutput = hist(qDot(2,1:N),10)
-                call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
+             end if
+             if(plotGraphs==2 .or. plotGraphs==3) then
+                histOutput = hist((qDot(2,1:N)*qDot(2,1:N))+ (qDot(1,1:N)*qDot(1,1:N)) + (qDot(3,1:N)*qDot(3,1:N)),20)
+                call nextPlot2d(histOutput(1:20,1),histOutput(1:20,2))
              end if
           end if
        end if
