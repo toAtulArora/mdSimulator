@@ -3,14 +3,15 @@ use gnuplot_fortran
 use random
 use stat
 implicit none
-real :: dt=0.001, radius=0.5
+real :: dt=0.001, radius=0.0001
 !radius is the radius of the hard sphere
 !N is the number of particles
 !mN is the number of iterations for which a movie is made
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
-integer(kind=4) :: N=5
-integer(kind=4), parameter :: tN=1000, mN=500,Nmax=1000000
+integer(kind=4) :: N=1000
+integer(kind=4), parameter :: tN=100, mN=1,Nmax=1000000
+integer, parameter :: collisionAlgorithm = 1
 
 !this is the volume
 real :: volume=1000
@@ -29,7 +30,7 @@ real, dimension(tN) :: t,E,P,P2,P3,P4,Pw
 
 integer, dimension(10000) :: windowSize,windowSizeN
 !integer :: pWindowSize = 1
-real :: temp1
+real :: temp1,temp2
 real :: avgP
 !there're six walls, two normal to each of the 3 axis
 real, dimension(3,2) :: pressureWall
@@ -77,9 +78,11 @@ call startPlot()
    call setZrange(0.0,real(boxSize))
 
    write (*,*) "Starting iterations.."
-
-   call iterateTheseManyTimes(tN,1,1)
-   write (*,*) "Done iterating :) \n"
+   call cpu_time(temp1)
+   call iterateTheseManyTimes(tN,collisionAlgorithm,1)
+   call cpu_time(temp2)
+   write(*,*) "Done iterating in  ", temp2- temp1, " seconds\n"
+   !write (*,*) "Done iterating :) \n"
    !l=l+1
    
    !windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
@@ -180,6 +183,7 @@ contains
     length=sqrt(lenSquare(vector))
   end function length
 
+  !function removeElementFromArray
   
   !To initialize the position and velocity of the particles with random values
   subroutine init()
@@ -202,9 +206,9 @@ contains
        !q(2,i)=rand()*(boxSize-(2*radius)) + radius
        !q(3,i)=rand()*(boxSize-(2*radius)) + radius
 
-       qDot(1,i)=randomNormal()*100000 !rand()*10
-       qDot(2,i)=randomNormal()*100000 !rand()*10
-       qDot(3,i)=randomNormal()*100000  !rand()*10
+       qDot(1,i)=100 !randomNormal()*10000 !rand()*10
+       qDot(2,i)=50 !randomNormal()*100000 !rand()*10
+       qDot(3,i)=10 !randomNormal()*100000  !rand()*10
 
        ! qDot(1,i)=signedRand()*100 !rand()*10
        ! qDot(2,i)=signedRand()*100 !rand()*10
@@ -219,17 +223,43 @@ contains
     end do
   end subroutine init
 
+  subroutine nMatPrettyPrint(nMat)
+    !real :: nMatPrettyPrint
+    integer, dimension(:,:,:,:)::nMat
+    integer :: sizePrec,sizeDensity,i,j
+    sizePrec=size(nMat(:,1,1,1))
+    sizeDensity=size(nMat(1,1,1,:))
+    write(*,*) "nMat=["
+    do i=1,sizePrec
+       write(*,*) nMat(:,i,1,1)
+    end do
+    write(*,*) "]"    
+  end subroutine nMatPrettyPrint
+
+
+
+
+
   subroutine iterateTheseManyTimes(numberOfIterations,collisionSpheres,plotGraphs)
     integer(kind=4), intent(in) :: numberOfIterations
     integer, optional :: plotGraphs,collisionSpheres
     !integer :: i,ii,j
-    integer :: ii
+    integer(kind=4) :: ii
+    !this is for efficient collision detection
+    integer(kind=4), dimension(3) :: qDisc
     real, dimension(3) :: qVector,qDotVector,unitqVector,qDotNewI,qDotNewII
     logical :: collision
     !the a,b,c are for solving a quadratic! heheh
     real :: deltaT,a,b,c
+    !this is for neighbour searching
+    integer, parameter :: nPrec=100,density=10
+    integer(kind=4), dimension(0:nPrec,0:nPrec,0:nPrec,0:density)::nMat=0
+    integer(kind=4), dimension (0:density) :: nMatCurr=0
+    integer(kind=4) :: densityInBox,ni
+    !call nMatPrettyPrint(nMat)
     call initProgress()
     !write(*,'(A)') "\b[##-------]"
+
     do k=1,numberOfIterations
        t(k)=time
        time=time+dt
@@ -237,8 +267,14 @@ contains
        P(k)=0
        pressureWall(:,:)=0
        !collision with the walls
+       !initialize neigbhour matrix to zero
+       nMat=0
+       !write(*,*) "Gla2"
        do i=1,N
+          !update particle position
           q(:,i)=q(:,i)+(qDot(:,i)*dt)
+
+          !check for wall collisions and evaluate pressure on each wall on the fly
           do j=1,3
              !if (q(j,i) >= 1.0) then
              !if (q(j,i) >= boxSize) then
@@ -251,14 +287,109 @@ contains
                 pressureWall(j,2)=pressureWall(j,2)-( (2*m*qDot(j,i)) / (dt*area) )
                 qDot(j,i)=-qDot(j,i)
                 q(j,i) = (2*radius)-q(j,i) 
-             end if
+             end if                          
           end do
+          !write(*,"(AI4.4)",advance="no") "\rWallCollisionsDone:",i
+          !evaluate total energy
           E(k)=E(k)+energy(qDot(:,i))
+
+
+          !check for collisions as hard spheres
+          if(present(collisionSpheres)) then
+             if(collisionSpheres==1) then
+                !First discritize the particle's location
+                qDisc=int((q(:,i)/boxSize)*nPrec)
+                !extract the relavent box from the neighbour matrix
+                !This will contain the number of particles in side the box 
+                !(that aren't colliding among themselves by construction)
+                nMatCurr=nMat(qDisc(1),qDisc(2),qDisc(3),:)
+
+                !IF the box was empty, coolio :)
+                if(nMatCurr(0)==0) then
+                   !tell it that there's a particle
+                   nMatCurr(0)=1
+                   !and tell it which particle
+                   nMatCurr(1)=i
+                   !Now if the box is NOT empty, then
+                else
+                   !find out how many particles are already there
+                   densityInBox=nMatCurr(0)
+                   !this is to find out if the ith particle collides with 
+                   !the ones already there in the box
+                   collision=.false.
+                   !we loop over all particles inside the box
+                   do ni=1,densityInBox
+                      !test for collisions between the i and nMatCurr(ni) particles
+
+                      !COLLISION TEST AND RESPONSE ALGO START:
+                      ii=nMatCurr(ni)
+                      qVector=q(:,i)-q(:,ii)
+                      qDotVector=qDot(:,i) - qDot(:,ii)
+
+                      !if the distance between the centres is less than 2r
+                      !then COLLISION HAPPENED!               
+                      if (lenSquare(qVector)<4*(radius*radius)) then
+
+                         !delta T is the time elapsed since the actual collision
+                         !Courtesy Prashansa
+                         a=lenSquare(qDotVector)
+                         b=-2*(sum(qVector*qDotVector))
+                         c=lenSquare(qVector) -4*radius*radius
+                         deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
+
+                         !Update position: use old velocity to get back to the point of collision
+                         q(:,i)=q(:,i) - (qDot(:,i)*deltaT)
+                         q(:,ii)=q(:,ii) - (qDot(:,ii)*deltaT)
+
+                         !update velocity
+                         unitqVector=qVector/length(qVector)
+                         qDotNewI=qDot(:,i)-sum(unitqVector*qDot(:,i))*unitqVector+sum(unitqVector*qDot(:,ii))*unitqVector
+                         qDotNewII=qDot(:,ii)-sum(unitqVector*qDot(:,ii))*unitqVector+sum(unitqVector*qDot(:,i))*unitqVector
+
+                         qDot(:,i)=qDotNewI
+                         qDot(:,ii)=qDotNewII
+
+                         !Update position: use corrected velocity to update to where you should've been, 
+                         !had the collision been detected when it happened! Damange control..hehe
+                         q(:,i)=q(:,i) + (qDot(:,i)*deltaT)
+                         q(:,ii)=q(:,ii) + (qDot(:,ii)*deltaT)
+
+                         !COLLISION TEST AND RESPONSE ALGO: ENDED
+
+                         !OBVIOUSLY THERE WAS A COLLISION, SO DO THE NEEDFUL FOR THE NEIGHBOUR SEARCH ALGO
+                         !make the number of particles in the box decrement
+                         !since by assumption, there wont be any 3 body collisions
+                         nMatCurr(0)=nMatCurr(0)-1
+                         !remove ni th element from the nMat matrix                   
+                         nMatCurr=(/ nMatCurr(0:(ni-1)),nMatCurr((ni+1):density) /)
+                         !make collision happened true for use later
+                         collision=.true.
+                         !exit the loop (by assumption, there can't be anymore collisions)
+                         exit
+                      end if
+                   end do
+                   !meaning no collision was found
+                   if(collision .eqv. .false.) then
+                      !increment the number of particles in the box that're not self colliding
+                      nMatCurr(0)=nMatCurr(0)+1
+                      !add the address of the current particle in the list of particles in the box
+                      nMatCurr(nMatCurr(0))=i
+                   end if
+                end if
+
+                !update the nMat matrix
+                nMat(qDisc(1),qDisc(2),qDisc(3),:)=nMatCurr
+                !will print the matrix once the loop is done
+                ! if (i==N .and. k<mN) then
+                !    call nMatPrettyPrint(nMat)
+                ! end if
+             end if
+          end if
        end do
 
        !collision among spheres
        if (present(collisionSpheres)) then
-          if (collisionSpheres==1) then
+          if (collisionSpheres==2) then
           do i=1,N
              do ii=i+1,N
              !if(i .ne. ii) then
@@ -272,17 +403,13 @@ contains
                    end if
                 end do
                 !if weak test says collision, test more carefully
-                qVector=q(:,i)-q(:,ii)
-                qDotVector=qDot(:,i) - qDot(:,ii)
                 if (collision) then
+                   qVector=q(:,i)-q(:,ii)
+                   qDotVector=qDot(:,i) - qDot(:,ii)
+
                    !if the distance between the centres is less than 2r
                    !then COLLISION HAPPENED!               
                    if (lenSquare(qVector)<4*(radius*radius)) then
-                      !write(*,*) "There was a collision:" 
-
-                      !delta T is (2r-r')/v_rel
-                      !deltaT=((2*radius) - length(qVector))/length(qDotVector)
-                      !deltaT=(2.0*radius)/length(qDotVector)
 
                       !delta T is the time elapsed since the actual collision
                       !Courtesy Prashansa
@@ -291,33 +418,17 @@ contains
                       c=lenSquare(qVector) -4*radius*radius
                       deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
 
-                      !write(*,*) "V1", qDot(:,i) ," and V2", qDot(:,ii)
-                      !write(*,*) "It had actually heppened (:P) ", deltaT, " unit times ago"
-                      !nonsense done
-                      ! deltaT=((2*radius) - length(qVector))/length(qDot(:,i))
-                      ! q(:,i)=q(:,i) - sum(unitqVector(:)*qDot(:,i))*unitqVector(:)*deltaT
-                      ! deltaT=((2*radius) - length(qVector))/length(qDot(:,ii))                      
-                      ! q(:,ii)=q(:,ii) - sum(unitqVector(:)*qDot(:,ii))*unitqVector(:)*deltaT
-                      !end nonsense
-
                       !Update position: use old velocity to get back to the point of collision
                       q(:,i)=q(:,i) - (qDot(:,i)*deltaT)
                       q(:,ii)=q(:,ii) - (qDot(:,ii)*deltaT)
 
                       !update velocity
-
-                      !write(*,*) "Velocity before", qDot(:,i)
                       unitqVector=qVector/length(qVector)
                       qDotNewI=qDot(:,i)-sum(unitqVector*qDot(:,i))*unitqVector+sum(unitqVector*qDot(:,ii))*unitqVector
                       qDotNewII=qDot(:,ii)-sum(unitqVector*qDot(:,ii))*unitqVector+sum(unitqVector*qDot(:,i))*unitqVector
-                      ! qDot(:,i)=qDot(:,i) - 2*sum(unitqVector*qDot(:,i))*unitqVector 
-                      ! qDot(:,ii)=qDot(:,ii) - 2*sum(unitqVector*qDot(:,ii))*unitqVector
 
                       qDot(:,i)=qDotNewI
                       qDot(:,ii)=qDotNewII
-
-                      !write(*,*) "Velocity after: ", qDot(:,i)
-                      !qDotVector
 
                       !Update position: use corrected velocity to update to where you should've been, had the collision been detected when it happened! Damange control..hehe
                       q(:,i)=q(:,i) + (qDot(:,i)*deltaT)
