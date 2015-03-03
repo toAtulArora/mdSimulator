@@ -9,7 +9,7 @@ real :: dt=0.001, radius=0.0001
 !mN is the number of iterations for which a movie is made
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
-integer(kind=4) :: N=1000
+integer(kind=4) :: N=100000
 integer(kind=4), parameter :: tN=100, mN=1,Nmax=1000000
 integer, parameter :: collisionAlgorithm = 1
 
@@ -199,12 +199,14 @@ contains
     t(:)=0
 
     do i=1,N
-       q(1,i)=((real(i)/real(N))*(boxSize-(2*radius))) + radius
-       q(2,i)=2*radius
-       q(3,i)=2*radius
-       !q(1,i)=rand()*(boxSize-(2*radius)) + radius
-       !q(2,i)=rand()*(boxSize-(2*radius)) + radius
-       !q(3,i)=rand()*(boxSize-(2*radius)) + radius
+       !Its the spooknfiguration
+       ! q(1,i)=((real(i)/real(N))*(boxSize-(2*radius))) + radius
+       ! q(2,i)=2*radius
+       ! q(3,i)=2*radius
+
+       q(1,i)=rand()*(boxSize-(2*radius)) + radius
+       q(2,i)=rand()*(boxSize-(2*radius)) + radius
+       q(3,i)=rand()*(boxSize-(2*radius)) + radius
 
        qDot(1,i)=100 !randomNormal()*10000 !rand()*10
        qDot(2,i)=50 !randomNormal()*100000 !rand()*10
