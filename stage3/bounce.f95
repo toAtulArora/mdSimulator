@@ -9,9 +9,9 @@ real :: dt=0.001, radius=0.0001
 !mN is the number of iterations for which a movie is made
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
-integer(kind=4) :: N=100000
+integer(kind=4) :: N=1000000
 integer(kind=4), parameter :: tN=100, mN=1,Nmax=1000000
-integer, parameter :: collisionAlgorithm = 1
+integer, parameter :: collisionAlgorithm = 0
 
 !this is the volume
 real :: volume=1000
@@ -254,7 +254,7 @@ contains
     !the a,b,c are for solving a quadratic! heheh
     real :: deltaT,a,b,c
     !this is for neighbour searching
-    integer, parameter :: nPrec=100,density=10
+    integer, parameter :: nPrec=150,density=10
     integer :: allocateStatus
     integer, dimension(:,:,:,:), allocatable :: nMat
     !integer(kind=4), dimension(0:nPrec,0:nPrec,0:nPrec,0:density)::nMat=0
