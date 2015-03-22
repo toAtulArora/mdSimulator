@@ -16,6 +16,8 @@ real :: volume=10
 !this is the mass of 1 gass molecule (in Kg)
 !real, parameter :: m=1.673534e10-24
 real, parameter :: m = 1
+integer :: tEquiv=0
+
 
 !boltzman constant in joules per kelvin
 real, parameter :: Kb=1.3806488e-23
@@ -59,12 +61,14 @@ call startPlot()
 open(unit=4,file='PVminusNKTvsN')
 open(unit=5,file='PavgVsN')
 
-do l=1,48
-!l=1
+!do l=1,48
+l=32-8
+!tEquiv is a paremeter that changes the temperature
 
+do tEquiv=1,50
    N=10**(l/8.0)
    write (*,*) "Initializing initial q and qDot for ", N, " particles."
-   call init()
+   call init(real(1.2**tEquiv))
    write (*,*) "Done!\n"
 
    call setXrange(0.0,real(boxSize))
@@ -79,8 +83,8 @@ do l=1,48
    !volume is known
    avgE=sum(E(1:tN))/real(tN)
    !temp1=avgP*volume - (N*Kb*temperature(avgE))
-   temp1=avgP*volume - (2/3.0)*avgE
-   write(4,*) N,temp1,avgP,avgE
+   temp1=avgP*volume - (2/3.0)*avgE*N
+   write(4,*) N,temp1,avgP,avgE,avgP*volume,(2.0/3.0)*avgE*N
 
    !PLOTTING ERROR IN PRESSURE WITH NUMBER OF PARTICLES
    histOutput=hist(P(1:tN),50)
@@ -91,6 +95,9 @@ do l=1,48
    !histogram of x component of qDot
 
 end do
+
+!end do
+
 close(5)
 close(4)
 
@@ -159,7 +166,8 @@ contains
   end function signedRand
 
   !To initialize the position and velocity of the particles with random values
-  subroutine init()
+  subroutine init(parametricT)
+    real, optional:: parametricT
     !intialize boxSize etc. required for iterating
     boxSize=volume**(1.0/3.0)
     area=volume**(2.0/3.0)
@@ -176,12 +184,17 @@ contains
        q(2,i)=rand()*boxSize
        q(3,i)=rand()*boxSize
 
-       !on an average, the velocity will be 0,
-       !max velocity will be 500
-       qDot(1,i)=randomNormal()*1000 !rand()*10
-       qDot(2,i)=randomNormal()*1000 !rand()*10
-       qDot(3,i)=randomNormal()*1000  !rand()*10
-
+       if (present(parametricT)) then
+          qDot(1,i)=randomNormal()*parametricT !rand()*10
+          qDot(2,i)=randomNormal()*parametricT !rand()*10
+          qDot(3,i)=randomNormal()*parametricT  !rand()*10
+       else
+          !on an average, the velocity will be 0,
+          !max velocity will be 500
+          qDot(1,i)=randomNormal()*1000 !rand()*10
+          qDot(2,i)=randomNormal()*1000 !rand()*10
+          qDot(3,i)=randomNormal()*1000  !rand()*10
+       end if
        ! qDot(1,i)=signedRand()*100 !rand()*10
        ! qDot(2,i)=signedRand()*100 !rand()*10
        ! qDot(3,i)=signedRand()*100  !rand()*10

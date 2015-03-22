@@ -21,3 +21,7 @@ Some Useful Commands
 --
 	* If you're running ubuntu, might want to do the following if you're running out of space	
 	rm -rf ~/.thumbs/*
+
+Progress
+--
+	March 21, 2015: Attempted to fix equation of state in stage 2. The only possible mistake seems to be that in the initial condition. Attempting to use stage 3 (with collisions turned on) to test.
