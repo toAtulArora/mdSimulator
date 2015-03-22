@@ -3,21 +3,26 @@ use gnuplot_fortran
 use random
 use stat
 implicit none
-real :: dt=0.001, radius=0.0001
+real :: dt=0.001, radius=0.01
 !radius is the radius of the hard sphere
 !N is the number of particles
 !mN is the number of iterations for which a movie is made
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
 integer(kind=4) :: N=1000000
-integer(kind=4), parameter :: tN=100, mN=1,Nmax=1000000
+integer(kind=4), parameter :: tN=3000, mN=1,Nmax=1000000
 integer, parameter :: collisionAlgorithm = 0
 
 !this is the volume
 real :: volume=1000
 !this is the mass
 real, parameter :: m = 1
+!this is the mass of 1 gass molecule (in Kg)
+!real, parameter :: m=1.673534e10-24
+integer :: tEquiv=0
 
+!boltzman constant in joules per kelvin
+real, parameter :: Kb=1.3806488e-23
 
 real :: boxSize
 real :: area
@@ -31,7 +36,7 @@ real, dimension(tN) :: t,E,P,P2,P3,P4,Pw
 integer, dimension(10000) :: windowSize,windowSizeN
 !integer :: pWindowSize = 1
 real :: temp1,temp2
-real :: avgP
+real :: avgP, avgE
 !there're six walls, two normal to each of the 3 axis
 real, dimension(3,2) :: pressureWall
 
@@ -58,13 +63,17 @@ call startPlot()
 !l=0
 !N=1000
 !open(unit=4,file='energyHist')
-
+l=32-8
 !do l=1,48
 !l=1
+open(unit=4,file='PVminusNKTvsN')
+open(unit=5,file='PavgVsN')
 
-   !N=10**(l/8.0)
+do tEquiv=1,50
+   N=10**(l/8.0)
    write (*,*) "Initializing initial q and qDot for ", N, " particles."
-   call init()
+   call init(real(1.2**tEquiv))
+
    write (*,*) "Done!\n"
 
    !histOutput = hist(qDot(2,1:N),10)
@@ -85,6 +94,17 @@ call startPlot()
    !write (*,*) "Done iterating :) \n"
    !l=l+1
    
+      
+   avgP=sum(P(1000:tN))/real(tN-1000)
+   !volume is known
+   avgE=sum(E(1000:tN))/real(tN-1000)
+   !temp1=avgP*volume - (N*Kb*temperature(avgE))
+   temp1=avgP*volume - (2/3.0)*avgE*N
+   write(4,*) N,temp1,avgP,avgE,avgP*volume,(2.0/3.0)*avgE*N
+
+
+
+
    !windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
    !windowSizeN(l)=N
 
@@ -104,10 +124,10 @@ call startPlot()
 
    !histogram of x component of qDot
 
-!end do
+end do
 
 close(4)
-
+close(5)
 !l=30
 !call plot2dSave(log(1.0*windowSizeN(1:l)),dt*windowSize(1:l),"windowSize vs N")
 
@@ -186,7 +206,8 @@ contains
   !function removeElementFromArray
   
   !To initialize the position and velocity of the particles with random values
-  subroutine init()
+  subroutine init(parametricT)
+    real, optional:: parametricT
     !intialize boxSize etc. required for iterating
     boxSize=volume**(1.0/3.0)
     area=volume**(2.0/3.0)
@@ -208,9 +229,22 @@ contains
        q(2,i)=rand()*(boxSize-(2*radius)) + radius
        q(3,i)=rand()*(boxSize-(2*radius)) + radius
 
-       qDot(1,i)=100 !randomNormal()*10000 !rand()*10
-       qDot(2,i)=50 !randomNormal()*100000 !rand()*10
-       qDot(3,i)=10 !randomNormal()*100000  !rand()*10
+       if (present(parametricT)) then
+          qDot(1,i)=randomNormal()*parametricT !rand()*10
+          qDot(2,i)=randomNormal()*parametricT !rand()*10
+          qDot(3,i)=randomNormal()*parametricT  !rand()*10
+       else
+          !on an average, the velocity will be 0,
+          !max velocity will be 500
+          qDot(1,i)=randomNormal()*1000 !rand()*10
+          qDot(2,i)=randomNormal()*1000 !rand()*10
+          qDot(3,i)=randomNormal()*1000  !rand()*10
+       end if
+
+
+       ! qDot(1,i)=100 !randomNormal()*10000 !rand()*10
+       ! qDot(2,i)=50 !randomNormal()*100000 !rand()*10
+       ! qDot(3,i)=10 !randomNormal()*100000  !rand()*10
 
        ! qDot(1,i)=signedRand()*100 !rand()*10
        ! qDot(2,i)=signedRand()*100 !rand()*10
@@ -254,7 +288,7 @@ contains
     !the a,b,c are for solving a quadratic! heheh
     real :: deltaT,a,b,c
     !this is for neighbour searching
-    integer, parameter :: nPrec=150,density=10
+    integer, parameter :: nPrec=20,density=10
     integer :: allocateStatus
     integer, dimension(:,:,:,:), allocatable :: nMat
     !integer(kind=4), dimension(0:nPrec,0:nPrec,0:nPrec,0:density)::nMat=0
@@ -301,7 +335,9 @@ contains
 
           !check for collisions as hard spheres
           if(present(collisionSpheres)) then
+             !write(*,*) "Will check for collisions using"
              if(collisionSpheres==1) then
+                !write(*,*) "Fast algorithm"
                 !First discritize the particle's location
                 qDisc=int((q(:,i)/boxSize)*nPrec)
                 !extract the relavent box from the neighbour matrix
@@ -395,6 +431,7 @@ contains
        !collision among spheres
        if (present(collisionSpheres)) then
           if (collisionSpheres==2) then
+          !write(*,*) "Collision test using algorithm 2"
           do i=1,N
              do ii=i+1,N
              !if(i .ne. ii) then
