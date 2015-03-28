@@ -62,7 +62,8 @@ open(unit=4,file='PVminusNKTvsN')
 open(unit=5,file='PavgVsN')
 
 !do l=1,48
-l=32-8
+!l=32-8
+l=32-4
 !tEquiv is a paremeter that changes the temperature
 
 do tEquiv=1,50
@@ -81,10 +82,14 @@ do tEquiv=1,50
    
    avgP=sum(P(1:tN))/real(tN)
    !volume is known
+   !time averaged E, not E per particle!
    avgE=sum(E(1:tN))/real(tN)
    !temp1=avgP*volume - (N*Kb*temperature(avgE))
-   temp1=avgP*volume - (2/3.0)*avgE*N
-   write(4,*) N,temp1,avgP,avgE,avgP*volume,(2.0/3.0)*avgE*N
+   temp1=avgP*volume - (2/3.0)*avgE
+   write(4,*) N,temp1,avgP,avgE,avgP*volume,(2.0/3.0)*avgE
+
+   ! temp1=avgP - (2/3.0)*avgE*N
+   ! write(4,*) N,temp1,avgP,avgE,avgP,(2.0/3.0)*avgE*N
 
    !PLOTTING ERROR IN PRESSURE WITH NUMBER OF PARTICLES
    histOutput=hist(P(1:tN),50)
@@ -239,7 +244,7 @@ contains
        !at different times
        qT(:,k)=q(:,1)
        qDotT(:,k)=qDot(:,1)
-       P(k)=sum(sum(pressureWall,dim=1),dim=1)
+       P(k)=sum(sum(pressureWall,dim=1),dim=1)/6.0
        if (present(plotGraphs)) then
           if(k<mN) then
              if(plotGraphs==1) then
