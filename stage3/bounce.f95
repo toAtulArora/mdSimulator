@@ -11,7 +11,7 @@ real :: dt=0.001, radius=0.01
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
 integer(kind=4) :: N=1000000
 integer(kind=4), parameter :: tN=3000, mN=1,Nmax=1000000
-integer, parameter :: collisionAlgorithm = 0
+integer, parameter :: collisionAlgorithm = 1
 
 !this is the volume
 real :: volume=1000
@@ -99,8 +99,8 @@ do tEquiv=1,50
    !volume is known
    avgE=sum(E(1000:tN))/real(tN-1000)
    !temp1=avgP*volume - (N*Kb*temperature(avgE))
-   temp1=avgP*volume - (2/3.0)*avgE*N
-   write(4,*) N,temp1,avgP,avgE,avgP*volume,(2.0/3.0)*avgE*N
+   temp1=avgP*volume - (2/3.0)*avgE
+   write(4,*) N,temp1,avgP,avgE,avgP*volume,(2.0/3.0)*avgE
 
 
 
@@ -489,7 +489,8 @@ contains
        !at different times
        qT(:,k)=q(:,1)
        qDotT(:,k)=qDot(:,1)
-       P(k)=sum(sum(pressureWall,dim=1),dim=1)
+       !average pressure over all walls (or equivalently, could've put the surface area as 6*area of square)
+       P(k)=sum(sum(pressureWall,dim=1),dim=1)/6.0
        if (present(plotGraphs)) then
           if(k<mN) then
              if(plotGraphs==1 .or. plotGraphs==3) then
