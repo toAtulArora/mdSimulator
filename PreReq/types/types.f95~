@@ -1,0 +1,50 @@
+program typeD
+  type coordinate
+     real, dimension(3):: x
+  end type coordinate
+
+  type particle
+     type(coordinate) q,qDot     
+  end type particle
+
+  type(coordinate) qDef!( (/ 0.0,1.0,2.0 /) )
+  type(particle) Chanchuon
+  type(particle), dimension(0:10) :: Chanchuons
+  integer :: k
+
+
+
+  ! write(*,*)" input coordinate x"
+  ! read(*,*) Chanchuon%q
+  
+  ! write(*,*)"input velocity: z"
+  ! read(*,*) Chanchuon%qDot
+
+  ! write(*,*)"printing the object", Chanchuon
+
+  ! write(*,*) "i can access q " ,Chanchuon%q
+  qDef%x= (/ 0.0,1.0,2.0 /)
+  do k=0,10
+     Chanchuons(k)%q=qDef
+     Chanchuons(k)%qDot%x = (qDef%x+qDef%x)
+     write(*,*) Chanchuons(k)     
+     !write(*,*) "one" , ChanchuonNew(Chanchuon)
+     !write(*,*) "two", Chanchuon
+  end do
+
+  write(*,*) (Chanchuons(k),k=1,10)
+contains
+
+  elemental function ChanchuonNew(Chanchuon)
+    type(particle), intent(in) :: Chanchuon
+    type(particle) :: ChanchuonNew
+    ChanchuonNew=Chanchuon
+    ChanchuonNew%q=Chanchuon%qDot
+    ChanchuonNew%qDot=Chanchuon%q
+    !write(*,*) "printing the object"
+
+  end function ChanchuonNew
+
+
+
+end program typeD

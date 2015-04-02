@@ -1,0 +1,7 @@
+module obj_class
+  implicit none
+  private
+  
+
+  
+end module obj_class

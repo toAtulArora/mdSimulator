@@ -1,49 +1,82 @@
-!STAGE 4
+!STAGE 3 modernized
 program bouncer
 use gnuplot_fortran
 use random
 use stat
 implicit none
+!old dt=0.001
 real :: dt=0.001, radius=0.01
 !radius is the radius of the hard sphere
 !N is the number of particles
 !mN is the number of iterations for which a movie is made
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
-integer(kind=4) :: N=1000000
+type macroscopicLike
+   integer(kind=4) :: N=1000000
+   !this is the volume
+   !real :: volume=1000
+   real:: V=1000
+   !time average P and time average E
+   !real :: avgP, avgE
+   real :: P, E
+end type macroscopicLike
+
+type(macroscopicLike) :: macroscopic
+
+!old tN=3000
 integer(kind=4), parameter :: tN=3000, mN=1,Nmax=1000000
 integer, parameter :: collisionAlgorithm = 1
-
-!this is the volume
-real :: volume=1000
 !this is the mass
 real, parameter :: m = 1
 !this is the mass of 1 gass molecule (in Kg)
 !real, parameter :: m=1.673534e10-24
-integer :: tEquiv=0
-
 !boltzman constant in joules per kelvin
 real, parameter :: Kb=1.3806488e-23
+
+integer :: tEquiv=0
+
 
 real :: boxSize
 real :: area
 real :: time=0
+
+!forgot what this does | probably something to do with finidng the time for averagein or some such
+integer, dimension(10000) :: windowSize,windowSizeN
+
+!integer :: pWindowSize = 1
+real :: temp1,temp2
+
+type particleLike
+   real, dimension(3) :: q
+   real, dimension(3) :: qDot
+end type particleLike
+
+
+type frameLike
+   !there're six walls, two normal to each of the 3 axis
+   real, dimension(3,2) :: pressureWall
+   type(particleLike), dimension(Nmax) ::  particles
+end type frameLike
+
+type(frameLike) :: frame,lastFrame
+
+
+type frameRecordLike
 !t is time
 !E is energy
 !P is pressure (instaneous)
 !Pw is windowed pressure (averaged over optimal window size (0.1 percent)
-real, dimension(tN) :: t,E,P,P2,P3,P4,Pw
+   real :: t,E,P,P2,P3,P4,Pw
+   real, dimension(3) :: qT,qDotT
+end type frameRecordLike
 
-integer, dimension(10000) :: windowSize,windowSizeN
-!integer :: pWindowSize = 1
-real :: temp1,temp2
-real :: avgP, avgE
-!there're six walls, two normal to each of the 3 axis
-real, dimension(3,2) :: pressureWall
+type (frameRecordLike), dimension(tN) :: framesRecord
 
-real, dimension(3,tN) :: qT,qDotT
-real, dimension(3,Nmax) :: q
-real, dimension(3,Nmax) :: qDot
+
+
+
+! type (particle), dimension(Nmax) :: particles
+
 integer(kind=4) :: k,i,j,l
 
 real, dimension(tN,2)::histOutput
@@ -71,8 +104,8 @@ open(unit=4,file='PVminusNKTvsN')
 open(unit=5,file='PavgVsN')
 
 do tEquiv=1,50
-   N=10**(l/8.0)
-   write (*,*) "Initializing initial q and qDot for ", N, " particles."
+   macroscopic%N=10**(l/8.0)
+   write (*,*) "Initializing initial q and qDot for ", macroscopic%N, " particles, with tEquiv ", tEquiv
    call init(real(1.2**tEquiv))
 
    write (*,*) "Done!\n"
@@ -87,8 +120,9 @@ do tEquiv=1,50
    call setYrange(0.0,real(boxSize))
    call setZrange(0.0,real(boxSize))
 
-   write (*,*) "Starting iterations.."
-   call cpu_time(temp1)
+   write (*,*) "Starting iterations (simulating ",dt*tN," physical seconds)..."
+   lastFrame=frame
+   call cpu_time(temp1)   
    call iterateTheseManyTimes(tN,collisionAlgorithm,1)
    call cpu_time(temp2)
    write(*,*) "Done iterating in  ", temp2- temp1, " seconds\n"
@@ -96,12 +130,14 @@ do tEquiv=1,50
    !l=l+1
    
       
-   avgP=sum(P(1000:tN))/real(tN-1000)
+   macroscopic%P=sum(framesRecord(1000:tN)%P)/real(tN-1000)
    !volume is known
-   avgE=sum(E(1000:tN))/real(tN-1000)
+   macroscopic%E=sum(framesRecord(1000:tN)%E)/real(tN-1000)   
+   !avgE=sum(E(1000:tN))/real(tN-1000)
    !temp1=avgP*volume - (N*Kb*temperature(avgE))
-   temp1=avgP*volume - (2/3.0)*avgE
-   write(4,*) N,temp1,avgP,avgE,avgP*volume,(2.0/3.0)*avgE
+   
+   temp1=macroscopic%P*macroscopic%V - (2/3.0)*macroscopic%E
+   write(4,*) macroscopic%N,temp1,macroscopic%P,macroscopic%E,macroscopic%P*macroscopic%V,(2.0/3.0)*macroscopic%E
 
 
 
@@ -113,8 +149,8 @@ do tEquiv=1,50
    !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
 
    !write(*,*) q(2,1:N)
-
-   histOutput=hist(E(1:tN),50)
+   !E(1:tN)
+   histOutput=hist(framesRecord(1:tN)%E,50)
    !write(*,*) E(1:tN)
    !call nextPlot2d(histOutput(1:50,1),histOutput(1:50,2))
    !call plot2dSave(histOutput(1:50,1),histOutput(1:50,2),"EnergyHist.jpg")
@@ -145,15 +181,15 @@ close(5)
 
 !NOT MAKING GRAPHS FOR NOW...
 ! write (*,*) "Generating graphs.."
-call plot2dSave(t(1:tN),qT(3,1:tN),"qT3.pdf",picFormat=1)
-call plot2dSave(t(1:tN),qT(2,1:tN),"qT2.pdf",picFormat=1)
-call plot2dSave(t(1:tN),qT(1,1:tN),"qT1.pdf",picFormat=1)
+call plot2dSave(framesRecord(1:tN)%t,framesRecord(1:tN)%qT(3),"qT3.pdf",picFormat=1)
+call plot2dSave(framesRecord(1:tN)%t,framesRecord(1:tN)%qT(2),"qT2.pdf",picFormat=1)
+call plot2dSave(framesRecord(1:tN)%t,framesRecord(1:tN)%qT(1),"qT1.pdf",picFormat=1)
 !  call plot2dSave(t,qT(2,:),"qT2.pdf")
 !  call plot2dSave(t,qT(3,:),"qT3.pdf")
 !  call plot2dSave(t,E,"energyT.pdf")
-call plot2dSave(t(1:tN),qDotT(3,1:tN),"qDotT3.pdf",picFormat=1)
-call plot2dSave(t(1:tN),qDotT(2,1:tN),"qDotT2.pdf",picFormat=1)
-call plot2dSave(t(1:tN),qDotT(1,1:tN),"qDotT1.pdf",picFormat=1)
+call plot2dSave(framesRecord(1:tN)%t,framesRecord(1:tN)%qDotT(3),"qDotT3.pdf",picFormat=1)
+call plot2dSave(framesRecord(1:tN)%t,framesRecord(1:tN)%qDotT(2),"qDotT2.pdf",picFormat=1)
+call plot2dSave(framesRecord(1:tN)%t,framesRecord(1:tN)%qDotT(1),"qDotT1.pdf",picFormat=1)
 !  call plot2dSave(t,qDotT(2,:),"qDotT2.pdf")
 !  call plot2dSave(t,qDotT(3,:),"qDotT3.pdf")
 ! call plot2dSave(t,P,"pressureT.pdf")
@@ -210,36 +246,36 @@ contains
   subroutine init(parametricT)
     real, optional:: parametricT
     !intialize boxSize etc. required for iterating
-    boxSize=volume**(1.0/3.0)
-    area=volume**(2.0/3.0)
+    boxSize=macroscopic%V**(1.0/3.0)
+    area=macroscopic%V**(2.0/3.0)
     
     !box size is between 0 and 1
     !call srand(1000)
     
     !initialize particles to be at some random location
-    E(1)=0
-    t(:)=0
+    framesRecord(1)%E=0
+    framesRecord(:)%t=0
 
-    do i=1,N
+    do i=1,macroscopic%N
        !Its the spooknfiguration
        ! q(1,i)=((real(i)/real(N))*(boxSize-(2*radius))) + radius
        ! q(2,i)=2*radius
        ! q(3,i)=2*radius
 
-       q(1,i)=rand()*(boxSize-(2*radius)) + radius
-       q(2,i)=rand()*(boxSize-(2*radius)) + radius
-       q(3,i)=rand()*(boxSize-(2*radius)) + radius
+       frame%particles(i)%q(1)=rand()*(boxSize-(2*radius)) + radius
+       frame%particles(i)%q(2)=rand()*(boxSize-(2*radius)) + radius
+       frame%particles(i)%q(3)=rand()*(boxSize-(2*radius)) + radius
 
        if (present(parametricT)) then
-          qDot(1,i)=randomNormal()*parametricT !rand()*10
-          qDot(2,i)=randomNormal()*parametricT !rand()*10
-          qDot(3,i)=randomNormal()*parametricT  !rand()*10
+          frame%particles(i)%qDot(1)=randomNormal()*parametricT !rand()*10
+          frame%particles(i)%qDot(2)=randomNormal()*parametricT !rand()*10
+          frame%particles(i)%qDot(3)=randomNormal()*parametricT  !rand()*10
        else
           !on an average, the velocity will be 0,
           !max velocity will be 500
-          qDot(1,i)=randomNormal()*1000 !rand()*10
-          qDot(2,i)=randomNormal()*1000 !rand()*10
-          qDot(3,i)=randomNormal()*1000  !rand()*10
+          frame%particles(i)%qDot(1)=randomNormal()*1000 !rand()*10
+          frame%particles(i)%qDot(2)=randomNormal()*1000 !rand()*10
+          frame%particles(i)%qDot(3)=randomNormal()*1000  !rand()*10
        end if
 
 
@@ -250,7 +286,7 @@ contains
        ! qDot(1,i)=signedRand()*100 !rand()*10
        ! qDot(2,i)=signedRand()*100 !rand()*10
        ! qDot(3,i)=signedRand()*100  !rand()*10
-       E(1)=E(1)+energy(qDot(:,i))
+       framesRecord(1)%E=framesRecord(1)%E+energy(frame%particles(i)%qDot(:))
 
 
        !if(mod(i,1000)==1) then
@@ -301,37 +337,38 @@ contains
     allocate(nMat(0:nPrec,0:nPrec,0:nPrec,0:density),stat=allocateStatus)
     if(allocateStatus /= 0) stop "Not enough memory :("
     do k=1,numberOfIterations
-       t(k)=time
+       framesRecord(k)%t=time
        time=time+dt
-       E(k)=0
-       P(k)=0
-       pressureWall(:,:)=0
+       framesRecord(k)%E=0
+       framesRecord(k)%P=0
+       frame%pressureWall(:,:)=0
        !collision with the walls
        !initialize neigbhour matrix to zero
        nMat=0
        !write(*,*) "Gla2"
-       do i=1,N
+       do i=1,macroscopic%N
           !update particle position
-          q(:,i)=q(:,i)+(qDot(:,i)*dt)
+          ! q(:,i)=q(:,i)+(qDot(:,i)*dt)
+          frame%particles(i)%q(:)=frame%particles(i)%q(:)+(frame%particles(i)%qDot(:)*dt)
 
           !check for wall collisions and evaluate pressure on each wall on the fly
           do j=1,3
              !if (q(j,i) >= 1.0) then
              !if (q(j,i) >= boxSize) then
-             if (q(j,i)>=boxSize-radius) then
-                pressureWall(j,1)=pressureWall(j,1)+ ( (2*m*qDot(j,i))/ (dt*area) )
-                qDot(j,i)=-qDot(j,i)
-                q(j,i)=q(j,i)-2*(q(j,i)-(boxSize-radius))
+             if (frame%particles(i)%q(j)>=boxSize-radius) then
+                frame%pressureWall(j,1)=frame%pressureWall(j,1)+ ( (2*m*frame%particles(i)%qDot(j))/ (dt*area) )
+                frame%particles(i)%qDot(j)=-frame%particles(i)%qDot(i)
+                frame%particles(i)%q(j)=frame%particles(i)%q(j)-2*(frame%particles(i)%q(j)-(boxSize-radius))
              !else if (q(j,i) <= 0.0) then
-             else if (q(j,i)<=radius) then
-                pressureWall(j,2)=pressureWall(j,2)-( (2*m*qDot(j,i)) / (dt*area) )
-                qDot(j,i)=-qDot(j,i)
-                q(j,i) = (2*radius)-q(j,i) 
+             else if (frame%particles(i)%q(j)<=radius) then
+                frame%pressureWall(j,2)=frame%pressureWall(j,2)-( (2*m*frame%particles(i)%qDot(j)) / (dt*area) )
+                frame%particles(i)%qDot(j)=-frame%particles(i)%qDot(j)
+                frame%particles(i)%q(j) = (2*radius)-frame%particles(i)%q(j) 
              end if                          
           end do
           !write(*,"(AI4.4)",advance="no") "\rWallCollisionsDone:",i
           !evaluate total energy
-          E(k)=E(k)+energy(qDot(:,i))
+          framesRecord(k)%E=framesRecord(k)%E+energy(frame%particles(i)%qDot(:))
 
 
           !check for collisions as hard spheres
@@ -340,11 +377,16 @@ contains
              if(collisionSpheres==1) then
                 !write(*,*) "Fast algorithm"
                 !First discritize the particle's location
-                qDisc=int((q(:,i)/boxSize)*nPrec)
+                qDisc=int((frame%particles(i)%q(:)/boxSize)*nPrec)
                 !extract the relavent box from the neighbour matrix
                 !This will contain the number of particles in side the box 
                 !(that aren't colliding among themselves by construction)
-                nMatCurr=nMat(qDisc(1),qDisc(2),qDisc(3),:)
+                !if(qDisc(1).ge.0 .and. qDisc(1).le.nPrec .and. qDisc(2).ge.0 .and. qDisc(2).le.nPrec .and. qDisc(2).ge.0 .and. qDisc(2).le.nPrec) then
+                   nMatCurr=nMat(qDisc(1),qDisc(2),qDisc(3),:)
+                !else
+                   !write (*,*) qDisc(:)
+                   !stop "ERROR!"
+                !end if
 
                 !IF the box was empty, coolio :)
                 if(nMatCurr(0)==0) then
@@ -356,6 +398,12 @@ contains
                 else
                    !find out how many particles are already there
                    densityInBox=nMatCurr(0)
+                   !ERROR, but let it run
+                   if(densityInBox>density) then
+                      call errorHandle("Too many particles in one grid")
+                      densityInBox=density
+                   end if
+                   
                    !this is to find out if the ith particle collides with 
                    !the ones already there in the box
                    collision=.false.
@@ -365,37 +413,50 @@ contains
 
                       !COLLISION TEST AND RESPONSE ALGO START:
                       ii=nMatCurr(ni)
-                      qVector=q(:,i)-q(:,ii)
-                      qDotVector=qDot(:,i) - qDot(:,ii)
+                      qVector=frame%particles(i)%q(:) - frame%particles(ii)%q(:)                      
+                      qDotVector=frame%particles(i)%qDot(:) - frame%particles(ii)%qDot(:)
 
                       !if the distance between the centres is less than 2r
-                      !then COLLISION HAPPENED!               
+                      !then COLLISION HAPPENED!
+                      !TODO: Figure what to do when the idstance is exactly zero! :(
                       if (lenSquare(qVector)<4*(radius*radius)) then
+                         if (lenSquare(qVector)>0) then
+                            unitqVector=qVector/length(qVector)
+                            !delta T is the time elapsed since the actual collision
+                            !Courtesy Prashansa
+                            a=lenSquare(qDotVector)
+                            b=-2*(sum(qVector*qDotVector))
+                            c=lenSquare(qVector) -4*radius*radius
+                            if (a>0) then
+                               deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
+                               !Update position: use old velocity to get back to the point of collision
+                               frame%particles(i)%q(:)=frame%particles(i)%q(:) - (frame%particles(i)%qDot(:)*deltaT)
+                               frame%particles(ii)%q(:)=frame%particles(ii)%q(:) - (frame%particles(ii)%qDot(:)*deltaT)
 
-                         !delta T is the time elapsed since the actual collision
-                         !Courtesy Prashansa
-                         a=lenSquare(qDotVector)
-                         b=-2*(sum(qVector*qDotVector))
-                         c=lenSquare(qVector) -4*radius*radius
-                         deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
+                               !update velocity
 
-                         !Update position: use old velocity to get back to the point of collision
-                         q(:,i)=q(:,i) - (qDot(:,i)*deltaT)
-                         q(:,ii)=q(:,ii) - (qDot(:,ii)*deltaT)
+                               qDotNewI=frame%particles(i)%qDot(:)-sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector + sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector
+                               !qDotNewI=qDotNewI+sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector
+                               !had to split because else it won't compile :(
+                               qDotNewII=frame%particles(ii)%qDot(:)-sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector + sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector 
+                               !qDotNewII=qDotNewII+sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector
 
-                         !update velocity
-                         unitqVector=qVector/length(qVector)
-                         qDotNewI=qDot(:,i)-sum(unitqVector*qDot(:,i))*unitqVector+sum(unitqVector*qDot(:,ii))*unitqVector
-                         qDotNewII=qDot(:,ii)-sum(unitqVector*qDot(:,ii))*unitqVector+sum(unitqVector*qDot(:,i))*unitqVector
+                               frame%particles(i)%qDot(:)=qDotNewI
+                               frame%particles(ii)%qDot(:)=qDotNewII
 
-                         qDot(:,i)=qDotNewI
-                         qDot(:,ii)=qDotNewII
+                               !Update position: use corrected velocity to update to where you should've been, 
+                               !had the collision been detected when it happened! Damange control..hehe
+                               frame%particles(i)%q(:)=frame%particles(i)%q(:) + (frame%particles(i)%qDot(:)*deltaT)
+                               frame%particles(ii)%q(:)=frame%particles(ii)%q(:) + (frame%particles(ii)%qDot(:)*deltaT)
 
-                         !Update position: use corrected velocity to update to where you should've been, 
-                         !had the collision been detected when it happened! Damange control..hehe
-                         q(:,i)=q(:,i) + (qDot(:,i)*deltaT)
-                         q(:,ii)=q(:,ii) + (qDot(:,ii)*deltaT)
+                            else
 
+                               !This shouldn't happen! It means that two particles are moving in the same direction and they're closer than 2r
+                               !So we fix it by hand..
+                               frame%particles(ii)%q(:)=frame%particles(i)%q(:)+ 2*radius*unitqVector
+                               !leave the volicities unchanged
+                            end if
+                         end if
                          !COLLISION TEST AND RESPONSE ALGO: ENDED
 
                          !OBVIOUSLY THERE WAS A COLLISION, SO DO THE NEEDFUL FOR THE NEIGHBOUR SEARCH ALGO
@@ -433,22 +494,22 @@ contains
        if (present(collisionSpheres)) then
           if (collisionSpheres==2) then
           !write(*,*) "Collision test using algorithm 2"
-          do i=1,N
-             do ii=i+1,N
+          do i=1,macroscopic%N
+             do ii=i+1,macroscopic%N
              !if(i .ne. ii) then
 
                 collision=.false.
                 !weak test for collision
                 do j=1,3
-                   if (abs(q(j,i)-q(j,ii))<2*radius) then
+                   if (abs(frame%particles(i)%q(j)-frame%particles(ii)%q(j))<2*radius) then
                       collision=.true.
                       exit
                    end if
                 end do
                 !if weak test says collision, test more carefully
                 if (collision) then
-                   qVector=q(:,i)-q(:,ii)
-                   qDotVector=qDot(:,i) - qDot(:,ii)
+                   qVector=frame%particles(i)%q(:)-frame%particles(ii)%q(:)
+                   qDotVector=frame%particles(i)%qDot(:) - frame%particles(ii)%qDot(:)
 
                    !if the distance between the centres is less than 2r
                    !then COLLISION HAPPENED!               
@@ -462,20 +523,22 @@ contains
                       deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
 
                       !Update position: use old velocity to get back to the point of collision
-                      q(:,i)=q(:,i) - (qDot(:,i)*deltaT)
-                      q(:,ii)=q(:,ii) - (qDot(:,ii)*deltaT)
+                      frame%particles(i)%q(:)=frame%particles(i)%q(:) - (frame%particles(i)%qDot(:)*deltaT)
+                      frame%particles(ii)%q(:)=frame%particles(ii)%q(:) - (frame%particles(ii)%qDot(:)*deltaT)
 
                       !update velocity
                       unitqVector=qVector/length(qVector)
-                      qDotNewI=qDot(:,i)-sum(unitqVector*qDot(:,i))*unitqVector+sum(unitqVector*qDot(:,ii))*unitqVector
-                      qDotNewII=qDot(:,ii)-sum(unitqVector*qDot(:,ii))*unitqVector+sum(unitqVector*qDot(:,i))*unitqVector
+                      qDotNewI=frame%particles(i)%qDot(:)-sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector+sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector
+                      ! qDotNewI=qDotNewI+sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector
+                      qDotNewII=frame%particles(ii)%qDot(:)-sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector+sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector
+                      ! qDotNewII=qDotNewII+sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector
 
-                      qDot(:,i)=qDotNewI
-                      qDot(:,ii)=qDotNewII
+                      frame%particles(i)%qDot(:)=qDotNewI
+                      frame%particles(ii)%qDot(:)=qDotNewII
 
                       !Update position: use corrected velocity to update to where you should've been, had the collision been detected when it happened! Damange control..hehe
-                      q(:,i)=q(:,i) + (qDot(:,i)*deltaT)
-                      q(:,ii)=q(:,ii) + (qDot(:,ii)*deltaT)
+                      frame%particles(i)%q(:)=frame%particles(i)%q(:) + (frame%particles(i)%qDot(:)*deltaT)
+                      frame%particles(ii)%q(:)=frame%particles(ii)%q(:) + (frame%particles(ii)%qDot(:)*deltaT)
                       
                    end if
 
@@ -488,18 +551,19 @@ contains
 
        !THis is to save the location and position of particle 1
        !at different times
-       qT(:,k)=q(:,1)
-       qDotT(:,k)=qDot(:,1)
+       framesRecord(k)%qT(:)=frame%particles(1)%q(:)
+       framesRecord(k)%qDotT(:)=frame%particles(1)%qDot(:)
        !average pressure over all walls (or equivalently, could've put the surface area as 6*area of square)
-       P(k)=sum(sum(pressureWall,dim=1),dim=1)/6.0
+       framesRecord(k)%P=sum(sum(frame%pressureWall,dim=1),dim=1)/6.0
        if (present(plotGraphs)) then
           if(k<mN) then
-             if(plotGraphs==1 .or. plotGraphs==3) then
-
-                call nextPlot3d(q(1,1:N),q(2,1:N),q(3,1:N))
+             if(plotGraphs==1 .or. plotGraphs==3) then                
+                call nextPlot3d(frame%particles(1:macroscopic%N)%q(1),frame%particles(1:macroscopic%N)%q(2),frame%particles(1:macroscopic%N)%q(3))!q(2,1:N),q(3,1:N))
              end if
              if(plotGraphs==2 .or. plotGraphs==3) then
-                histOutput = hist((qDot(2,1:N)*qDot(2,1:N))+ (qDot(1,1:N)*qDot(1,1:N)) + (qDot(3,1:N)*qDot(3,1:N)),20)
+                
+                histOutput = hist((frame%particles(1:macroscopic%N)%qDot(1)**2) + (frame%particles(1:macroscopic%N)%qDot(2)**2) + (frame%particles(1:macroscopic%N)%qDot(3)**2),20)
+                ! hist((qDot(2,1:N)*qDot(2,1:N))+ (qDot(1,1:N)*qDot(1,1:N)) + (qDot(3,1:N)*qDot(3,1:N)),20)
                 call nextPlot2d(histOutput(1:20,1),histOutput(1:20,2))
              end if
           end if
@@ -507,6 +571,7 @@ contains
        !write(*,'(f5.5A)',advance="no") real(k)/real(numberOfIterations),"\r"
        call incProgress(k,numberOfIterations)
     end do
+    deallocate(nMat)
     call endProgress()
   end subroutine iterateTheseManyTimes
 
@@ -525,6 +590,18 @@ contains
     end if
   end subroutine incProgress
 
+  subroutine errorHandle(errorMessage)    
+    character(len=*) :: errorMessage
+    integer :: inp
+    write(*,*) "Error Occured:"
+    write(*,*) errorMessage
+    write(*,*) "Input 0 to ignore and continue, anything else to exit"
+    ! read(*,*) inp
+    ! if (inp .ne. 0) then
+       stop "User chose to exit"
+    ! end if
+  end subroutine errorHandle
+
   function avgPwithTheseManyIterations(window)
     integer(kind=4),intent(in) :: window
     real, dimension(tN) :: avgPwithTheseManyIterations
@@ -533,7 +610,7 @@ contains
     do h=1,tN-window
        tempP=0
        do k=h,(h+window)
-          tempP=tempP + P(k)
+          tempP=tempP + framesRecord(k)%P
        end do
        tempP=tempP/real(window)
        avgPwithTheseManyIterations(h)=tempP
@@ -543,8 +620,8 @@ contains
   function errorPercentInPn(Pn)
     real, intent(in), dimension(tN) :: Pn
     real :: stddev,errorPercentInPn
-    stddev = sqrt( sum((/Pn-avgP/)*(/Pn-avgP/),dim=1)   / (tN-1))
-    errorPercentInPn = (stddev/avgP)*100
+    stddev = sqrt( sum((/Pn-macroscopic%P/)*(/Pn-macroscopic%P/),dim=1)   / (tN-1))
+    errorPercentInPn = (stddev/macroscopic%P)*100
     
   end function errorPercentInPn
 
@@ -558,7 +635,7 @@ contains
        maxPercentError=maxPercentErrorGiven
     end if
 
-    avgP=sum(P)/real(size(P))
+    macroscopic%P=sum(framesRecord(1:tN)%P)/real(tN)
     do i=1,tN/10,(tN/1000+1)
        PnTemp=avgPwithTheseManyIterations(i)
        temp1=errorPercentInPn(PnTemp(1:(tN-i)) )
