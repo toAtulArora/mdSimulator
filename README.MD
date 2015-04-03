@@ -28,6 +28,8 @@ Progress
 --
 	March 21, 2015: Attempted to fix equation of state in stage 2. The only possible mistake seems to be that in the initial condition. Attempting to use stage 3 (with collisions turned on) to test. In stage 3 also, we're getting the same result regardless of collision tests. Infact the result doesn't change at all, its same to the last significant digit.
 	March 27, 2015: Fixed the equation of state! We weren't dividing by 6 in the pressure calculation and we got confused with avgE to mean per particle E, whereas it meant avg over time. We haven't yet figured why in the previous attempt we were getting the same results regardless of collision testing.
+	March 30/31, April 1, 2015: Reading about types, classes, elemental functions etc in fortran
+	April 2, 2015: Started modernizing. 
 
 Immediate Goals
 --
