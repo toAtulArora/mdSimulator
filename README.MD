@@ -15,6 +15,7 @@ List of applications you'd need
 	* synaptic
 	* git
 	* gfortran
+	* gdb
 	* gnuplot
 	* emacs
 	* libavconv
@@ -29,11 +30,13 @@ Progress
 	March 21, 2015: Attempted to fix equation of state in stage 2. The only possible mistake seems to be that in the initial condition. Attempting to use stage 3 (with collisions turned on) to test. In stage 3 also, we're getting the same result regardless of collision tests. Infact the result doesn't change at all, its same to the last significant digit.
 	March 27, 2015: Fixed the equation of state! We weren't dividing by 6 in the pressure calculation and we got confused with avgE to mean per particle E, whereas it meant avg over time. We haven't yet figured why in the previous attempt we were getting the same results regardless of collision testing.
 	March 30/31, April 1, 2015: Reading about types, classes, elemental functions etc in fortran
-	April 2, 2015: Started modernizing. 
-
+	April 2, 2015: Started modernizing. Linked list done, gdb started use
+	April 3, 2015: Working on nearest neighbour for a given radius, LJ potential, r-4 potential, gdb used in a big way for debugging, euler evolution, rk4 evolution (neighter worked well with LJ potential, r-4 is fine)
+	April 4, 2015: Tweaked rendering for constant physical time, Implemented neighbour search in the real program, further optimization left
+	
 Immediate Goals
 --
 	* Start from non-equilibrium
-	* Linked list (perhaps later)
-	* Neighbouring Boxes
-	* Short range forces
+	* Linked list (perhaps later) | done
+	* Neighbouring Boxes | done
+	* Short range forces | done (not efficient enough)
