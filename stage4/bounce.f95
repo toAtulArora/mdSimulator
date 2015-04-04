@@ -7,14 +7,14 @@ use stat
 implicit none
 !old dt=0.001
 real,parameter :: maxVelocity=50
-real,parameter :: radius=1.0,dt=radius/(10*maxVelocity) !0.0001
+real,parameter :: radius=0.05,dt=0.0001 !radius/(10*maxVelocity) !0.0001
 !radius is the radius of the hard sphere
 !N is the number of particles
 !mN is the number of iterations for which a movie is made (OBSOLETE)
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
 type macroscopicLike
-   integer(kind=4) :: N=10
+   integer(kind=4) :: N=1000
    !this is the volume
    !real :: volume=1000
    real:: V=1000
@@ -26,10 +26,10 @@ end type macroscopicLike
 type(macroscopicLike) :: macroscopic
 
 !old tN=3000
-real, parameter :: simulationDuration=15.0
+real, parameter :: simulationDuration=5.0
 integer(kind=4), parameter :: tN=simulationDuration/dt, Nmax=1000000,mN=100
 !render duration in seconds
-real, parameter :: renderDuration=15.0
+real, parameter :: renderDuration=5.0
 
 integer, parameter :: collisionAlgorithm = 1
 !this is the mass
@@ -55,7 +55,8 @@ real :: temp1,temp2
 
 type potentialParametersLike
    real :: epsilon=100,rm=radius !0.01
-   real :: A=4,B=2,X=1,Y=0
+   real :: A=4,B=6,X=1,Y=0
+   !real :: A=12,B=6,X=1,Y=2
    !This is for the potential
    ! u = epsilon (X*(rm/r)**A - Y*(rm/r)**B)
    !d is the distance 2*radius
@@ -65,7 +66,7 @@ end type potentialParametersLike
 type(potentialParametersLike) :: potentialParameter
 
 type particleLike
-   real, dimension(3) :: q, qDot, force
+   real, dimension(3) :: q, qDot, force, q2,q3,q4,k1,m1,k2,m2,k3,m3,k4,m4
    integer :: next
    integer :: collided
 !0 = not collided
@@ -143,7 +144,7 @@ do tEquiv=28,28
    !macroscopic%N=10**(l/8.0)
    write (*,*) "Initializing initial q and qDot for ", macroscopic%N, " particles, with tEquiv ", tEquiv
    call init(real(1.2**tEquiv))
-   ! call init(spooky=1)
+   !call init(spooky=1)
 
    write (*,*) "Done!\n"
 
@@ -161,7 +162,7 @@ do tEquiv=28,28
    !lastFrame=frame
    call cpu_time(temp1)   
    !collisionAlgorithm
-   call iterateTheseManyTimes(tN,plotGraphs=1)
+   call iterateTheseManyTimes(tN,optimized=1,plotGraphs=1)
    call cpu_time(temp2)
    write(*,*) "Done iterating in  ", temp2- temp1, " seconds\n"
    !write (*,*) "Done iterating :) \n"
@@ -368,9 +369,9 @@ contains
 
 
 
-  subroutine iterateTheseManyTimes(numberOfIterations,collisionSpheres,plotGraphs)
+  subroutine iterateTheseManyTimes(numberOfIterations,optimized,plotGraphs)
     integer(kind=4), intent(in) :: numberOfIterations
-    integer, optional :: plotGraphs,collisionSpheres
+    integer, optional :: plotGraphs,optimized
     !integer :: i,ii,j
     integer(kind=4) :: ii,s
     !this is for efficient collision detection
@@ -386,6 +387,7 @@ contains
     integer, dimension(:,:,:), allocatable :: nMat
     !integer(kind=4), dimension(0:nPrec,0:nPrec,0:nPrec,0:density)::nMat=0
     integer  :: nMatCurr=0
+    integer :: rk
     integer(kind=4) :: densityInBox,ni
     type (particleLike) :: tempParticle
     type temporary
@@ -394,7 +396,7 @@ contains
     integer :: lastFrameNumber = 0
     type(temporary) :: temp
     integer :: neighbourCount
-    integer, dimension(100) :: neighbourAddress
+    integer, dimension(:), allocatable :: neighbourAddress
     integer, dimension(:,:), allocatable::boxAddresses
     integer, dimension(3):: cAdd
     !call nMatPrettyPrint(nMat)
@@ -404,7 +406,10 @@ contains
     nPrec=(macroscopic%N)**(1.0/3)
     allocate(nMat(0:nPrec,0:nPrec,0:nPrec),stat=allocateStatus)    
     if(allocateStatus /= 0) stop "Not enough memory :("
-
+    allocate(neighbourAddress(macroscopic%N))
+    !get a list of neibhour boxes depending on range of interaction (needed for optimization)
+    boxAddresses=getBoxAddresses(4*radius,boxSize/real(nPrec))
+    
     time=0
     !lastFrame=frame
     do k=1,numberOfIterations
@@ -421,7 +426,11 @@ contains
        !frame%particles(:)%next=0
        !frame%particles(:)%collided=0
        !write(*,*) nMat
-       do i=1,macroscopic%N
+
+       !populates the grid for nearest neighbour search
+       if(present(optimized)) then
+          if(optimized==1) then
+             do i=1,macroscopic%N
           lastFrame%particles(i)=frame%particles(i)
 
           !initialize for each particle some quantities
@@ -472,347 +481,157 @@ contains
           nMat(qDisc(1),qDisc(2),qDisc(3))=nMatCurr
 
        end do
-       
-       !write(*,*) "Gla2"
-       do i=1,macroscopic%N
-          !save the old positions in the last frame
-          !lastFrame%particles(i) = frame%particles(i)
-
-          !GET A LIST OF NEIGHBOURS          
-          neighbourCount=0
-
-          !First discritize the particle's location
-          qDisc=int((lastFrame%particles(i)%q(:)/boxSize)*nPrec)
-          !get a list of neibhour boxes depending on range of interaction
-          boxAddresses=getBoxAddresses(4*radius,boxSize/real(nPrec))
-          !write(*,*) size(boxAddresses(:,1))
-          do j=1,size(boxAddresses(:,1))
-             !goto the neibhouring box
-             cAdd=qDisc + boxAddresses(j,:)
-             !if it exists ofcourse
-             if(cAdd(1)>=0 .and. cAdd(2)>=0 .and. cAdd(3)>=0 .and. cAdd(1)<=nPrec .and. cAdd(2)<=nPrec .and. cAdd(3)<=nPrec) then
-                !extract the relavent box from the neighbour matrix          
-                nMatCurr=nMat(cAdd(1),cAdd(2),cAdd(3))
-                !write(*,*) nMatCurr
-                if(nMatCurr .ne. 0) then
-                   neighbourCount=neighbourCount+1
-                   neighbourAddress(neighbourCount)=nMatCurr
-                   ii=nMatCurr
-                   do while (ii .ne. 0)
-                      tempParticle=frame%particles(ii)
-                      if(tempParticle%next .ne. 0) then                         
-                         neighbourCount=neighbourCount+1
-                         neighbourAddress(neighbourCount)=tempParticle%next
-                         ii=tempParticle%next
-                      else
-                         exit                         
-                      end if
-                   end do
-                end if
-                !neighbourAddress
-             end if
-          end do
-
-          ! write(*,*) " for ",i, neighbourAddress(1:neighbourCount)
-          ! write(*,*) " for ",i, qDisc
-          ! write(*,*) " for ",i, size(boxAddresses(:,1))
-          
-          !firs set the force being applied on the ith particle to be zero
-          frame%particles(i)%force=0
-          !update particle velocity (bad algorithm)
-          !to do that, first find the force being applied on the particle
-
-          !EULER
-          ! frame%particles(i)%force = effectiveForce(lastFrame%particles(i)%q,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)
-
-          !RK 4
-          temp%k1 = (effectiveForce(lastFrame%particles(i)%q,i,lastFrame%particles, neighbourAddress, potentialParameter, neighbourCount)/m)*dt
-          temp%k2 = (effectiveForce(lastFrame%particles(i)%q + 0.5*temp%k1,i,lastFrame%particles, neighbourAddress, potentialParameter, neighbourCount)/m)*dt
-          temp%k3 = (effectiveForce(lastFrame%particles(i)%q + 0.5*temp%k2,i,lastFrame%particles, neighbourAddress, potentialParameter, neighbourCount)/m)*dt
-          temp%k4 = (effectiveForce(lastFrame%particles(i)%q + temp%k3,i,lastFrame%particles, neighbourAddress, potentialParameter, neighbourCount)/m)*dt
-          
-          ! temp%k1 = (effectiveForce(lastFrame%particles(i)%q,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)/m)*dt
-          ! temp%k2 = (effectiveForce(lastFrame%particles(i)%q + 0.5*temp%k1,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)/m)*dt
-          ! temp%k3 = (effectiveForce(lastFrame%particles(i)%q + 0.5*temp%k2,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)/m)*dt
-          ! temp%k4 = (effectiveForce(lastFrame%particles(i)%q + temp%k3,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)/m)*dt
-          
-          !OBSOLETE
-          ! do s=1,macroscopic%N
-          !    if(s .ne. i) then
-          !       frame%particles(i)%force=frame%particles(i)%force + force(lastFrame%particles(s)%q,lastFrame%particles(i)%q,potentialParameter)
-          !    end if
-          ! end do
-
-          ! now with this, find the particle velocity
-          !EULER
-          ! frame%particles(i)%qDot=frame%particles(i)%qDot + ((frame%particles(i)%force/m)*dt)
-
-
-          !RK 4
-          frame%particles(i)%qDot=frame%particles(i)%qDot + (1/6.0)*(temp%k1 + 2*temp%k2 + 2*temp%k3 + temp%k4)
-         
-          ! update particle position
-          ! part of RK 4, but euler
-          ! frame%particles(i)%q(:)=frame%particles(i)%q(:)+(lastFrame%particles(i)%qDot(:)*dt)
-
-          !EULER (MIXED)
-          frame%particles(i)%q(:)=frame%particles(i)%q(:)+(frame%particles(i)%qDot(:)*dt)
-
-          
-
-          !check for wall collisions and evaluate pressure on each wall on the fly
-          do j=1,3
-             ! if (q(j,i) >= 1.0) then
-             ! if (q(j,i) >= boxSize) then
-             if (frame%particles(i)%q(j)>=boxSize-radius) then
-                frame%pressureWall(j,1)=frame%pressureWall(j,1)+ ( (2*m*frame%particles(i)%qDot(j))/ (dt*area) )
-                frame%particles(i)%qDot(j)=-frame%particles(i)%qDot(j)
-                frame%particles(i)%q(j)=frame%particles(i)%q(j)-2*(frame%particles(i)%q(j)-(boxSize-radius))
-                if(frame%particles(i)%q(j)<=radius) then
-                   !stop "Decrease dt! After reflecting from the wall and correcting, the particle is going outside the box! :("
-                end if
-             !else if (q(j,i) <= 0.0) then
-             else if (frame%particles(i)%q(j)<=radius) then
-                frame%pressureWall(j,2)=frame%pressureWall(j,2)-( (2*m*frame%particles(i)%qDot(j)) / (dt*area) )
-                frame%particles(i)%qDot(j)=-frame%particles(i)%qDot(j)
-                frame%particles(i)%q(j) = (2*radius)-frame%particles(i)%q(j) 
-                if(frame%particles(i)%q(j)>=boxSize-radius) then
-                   !stop "Decrease dt! After reflecting from the wall and correcting, the particle is going outside the box! :("
-                end if
-             end if
-          end do
-          !evaluate total energy
-          framesRecord(k)%E=framesRecord(k)%E+energy(frame%particles(i)%qDot(:))
-
-          !check for collisions as hard spheres
-          if(present(collisionSpheres)) then
-             !write(*,*) "Will check for collisions using"
-             if(collisionSpheres==1) then
-                !write(*,*) "Fast algorithm"
-                !First discritize the particle's location
-                qDisc=int((frame%particles(i)%q(:)/boxSize)*nPrec)
-                !extract the relavent box from the neighbour matrix
-                !This will contain the number of particles in side the box 
-                !(that aren't colliding among themselves by construction)
-                !if(qDisc(1).ge.0 .and. qDisc(1).le.nPrec .and. qDisc(2).ge.0 .and. qDisc(2).le.nPrec .and. qDisc(2).ge.0 .and. qDisc(2).le.nPrec) then
-                
-                nMatCurr=nMat(qDisc(1),qDisc(2),qDisc(3))
-                !else
-                   !write (*,*) qDisc(:)
-                   !stop "ERROR!"
-                !end if
-
-                !IF the box was empty, coolio :)
-                if(nMatCurr==0) then
-                   !store the address of the first particle!
-                   nMatCurr=i
-                else
-                   !OBSOLETE
-                   ! !find out how many particles are already there
-                   ! densityInBox=nMatCurr(0)
-                   ! !ERROR, but let it run
-                   ! if(densityInBox>density) then
-                   !    call errorHandle("Too many particles in one grid")
-                   !    densityInBox=density
-                   ! end if
-                   
-
-                   !this is to find out if the ith particle collides with 
-                   !the ones already there in the box
-                   collision=.false.
-
-                   !we loop over all particles inside the box
-                   !since nMatCurr is not zero, (you checked it), so the number in nMatCurr must be the address/index of the first particle in the box (by construction)                   
-                   !let ii hold that address/index (of the first particle in the box)
-                   
-                   ii=nMatCurr
-                   if (ii>macroscopic%N) then   
-                      write(*,*) "S0:",ii
-                      !stop "1. ii was greater than the number of particles!"
-                   end if
-
-                   
-                   do while (ii .ne. 0)
-                      !COLLISION TEST AND RESPONSE ALGO START:
-                      !!so we save tempParticle to be that particle
-                      !!
-                      if (ii>macroscopic%N) then   
-                         write(*,*) "S1:",ii
-                         !stop "1. ii was greater than the number of particles!"
-                      end if
-
-                      !worry about collisions with this particle, only if this particle hasn't collided in the past (by assumption, there's only one collision)
-                      if((frame%particles(ii)%collided == 0) .and. (frame%particles(i)%collided == 0))then
-
-                         !this is used later to find the next particle
-                         
-                         !ii=nMatCurr(ni)
-                         
-                         qVector=frame%particles(i)%q(:) - frame%particles(ii)%q(:)                      
-                         qDotVector=frame%particles(i)%qDot(:) - frame%particles(ii)%qDot(:)
-
-
-
-                         !if the distance between the centres is less than 2r
-                         !then COLLISION HAPPENED!
-                         !TODO: Figure what to do when the idstance is exactly zero! :(
-                         if (lenSquare(qVector)<4*(radius*radius)) then
-                            if (lenSquare(qVector)>0) then
-                               unitqVector=qVector/length(qVector)
-                               !delta T is the time elapsed since the actual collision
-                               !Courtesy Prashansa
-                               a=lenSquare(qDotVector)
-                               b=-2*(sum(qVector*qDotVector))
-                               c=lenSquare(qVector) -4*radius*radius
-                               if (a>0) then
-                                  deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
-                                  !Update position: use old velocity to get back to the point of collision
-                                  frame%particles(i)%q(:)=frame%particles(i)%q(:) - (frame%particles(i)%qDot(:)*deltaT)
-                                  frame%particles(ii)%q(:)=frame%particles(ii)%q(:) - (frame%particles(ii)%qDot(:)*deltaT)
-
-                                  !update velocity
-
-                                  qDotNewI=frame%particles(i)%qDot(:)-sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector + sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector
-                                  !qDotNewI=qDotNewI+sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector
-                                  !had to split because else it won't compile :(
-                                  qDotNewII=frame%particles(ii)%qDot(:)-sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector + sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector 
-                                  !qDotNewII=qDotNewII+sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector
-
-                                  frame%particles(i)%qDot(:)=qDotNewI
-                                  frame%particles(ii)%qDot(:)=qDotNewII
-
-                                  !Update position: use corrected velocity to update to where you should've been, 
-                                  !had the collision been detected when it happened! Damange control..hehe
-                                  frame%particles(i)%q(:)=frame%particles(i)%q(:) + (frame%particles(i)%qDot(:)*deltaT)
-                                  frame%particles(ii)%q(:)=frame%particles(ii)%q(:) + (frame%particles(ii)%qDot(:)*deltaT)
-
-                               else
-
-                                  !This shouldn't happen! It means that two particles are moving in the same direction and they're closer than 2r
-                                  !So we fix it by hand..
-                                  frame%particles(ii)%q(:)=frame%particles(i)%q(:)+ 2*radius*unitqVector
-                                  !leave the volicities unchanged
-                               end if
-                            end if
-                            !COLLISION TEST AND RESPONSE ALGO: ENDED
-                            
-                            !OBVIOUSLY THERE WAS A COLLISION, SO DO THE NEEDFUL FOR THE NEIGHBOUR SEARCH ALGO
-                            frame%particles(ii)%collided=frame%particles(ii)%collided + 1
-                            frame%particles(i)%collided=frame%particles(i)%collided + 1
-                            !This will help end the loop 
-                            !OBSOLETE
-                            ! !make the number of particles in the box decrement
-                            ! !since by assumption, there wont be any 3 body collisions
-                            ! nMatCurr(0)=nMatCurr(0)-1
-                            ! !remove ni th element from the nMat matrix                   
-                            ! nMatCurr=(/ nMatCurr(0:(ni-1)),nMatCurr((ni+1):density) /)
-                            ! !make collision happened true for use later
-                            !exit the loop (by assumption, there can't be anymore collisions)
-                            !exit
-                            collision=.true.
-                            
-                         end if
-                      end if
-
-
-                      tempParticle=frame%particles(ii)
-                      !Find the next particle                      
-                      if(tempParticle%next .ne. 0) then                         
-                         !update the index to point to the next particle
-                         ii=tempParticle%next
-                         if (ii>macroscopic%N) then   
-                            !stop "2. ii was greater than the number of particles!"
-                            write(*,*) "S2:", ii
-                         end if
-                      else
-                         !ii holds the index to the last particle
-                         !to it i'll add my ith particle (one i'm looking at)
-                         frame%particles(ii)%next=i
-                         !ii=0 !(because there's no next particle!)
-                         exit                         
-                      end if
-                   end do
-
-                   !OBSOLETE
-                   ! !meaning no collision was found
-                   ! if(collision .eqv. .false.) then
-                      
-                   !    !increment the number of particles in the box that're not self colliding
-                   !    nMatCurr(0)=nMatCurr(0)+1
-                   !    !add the address of the current particle in the list of particles in the box
-                   !    nMatCurr(nMatCurr(0))=i
-                   ! end if
-
-                end if
-
-                !update the nMat matrix
-                nMat(qDisc(1),qDisc(2),qDisc(3))=nMatCurr
-                !will print the matrix once the loop is done
-                ! if (i==N .and. k<mN) then
-                !    call nMatPrettyPrint(nMat)
-                ! end if
-             end if
-          end if
-       end do
-
-       !collision among spheres
-       if (present(collisionSpheres)) then
-          if (collisionSpheres==2) then
-          !write(*,*) "Collision test using algorithm 2"
-          do i=1,macroscopic%N
-             do ii=i+1,macroscopic%N
-             !if(i .ne. ii) then
-
-                collision=.false.
-                !weak test for collision
-                do j=1,3
-                   if (abs(frame%particles(i)%q(j)-frame%particles(ii)%q(j))<2*radius) then
-                      collision=.true.
-                      exit
-                   end if
-                end do
-                !if weak test says collision, test more carefully
-                if (collision) then
-                   qVector=frame%particles(i)%q(:)-frame%particles(ii)%q(:)
-                   qDotVector=frame%particles(i)%qDot(:) - frame%particles(ii)%qDot(:)
-
-                   !if the distance between the centres is less than 2r
-                   !then COLLISION HAPPENED!               
-                   if (lenSquare(qVector)<4*(radius*radius)) then
-
-                      !delta T is the time elapsed since the actual collision
-                      !Courtesy Prashansa
-                      a=lenSquare(qDotVector)
-                      b=-2*(sum(qVector*qDotVector))
-                      c=lenSquare(qVector) -4*radius*radius
-                      deltaT=(-b + sqrt((b*b) - (4*a*c)))/(2*a)
-
-                      !Update position: use old velocity to get back to the point of collision
-                      frame%particles(i)%q(:)=frame%particles(i)%q(:) - (frame%particles(i)%qDot(:)*deltaT)
-                      frame%particles(ii)%q(:)=frame%particles(ii)%q(:) - (frame%particles(ii)%qDot(:)*deltaT)
-
-                      !update velocity
-                      unitqVector=qVector/length(qVector)
-                      qDotNewI=frame%particles(i)%qDot(:)-sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector+sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector
-                      ! qDotNewI=qDotNewI+sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector
-                      qDotNewII=frame%particles(ii)%qDot(:)-sum(unitqVector*frame%particles(ii)%qDot(:))*unitqVector+sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector
-                      ! qDotNewII=qDotNewII+sum(unitqVector*frame%particles(i)%qDot(:))*unitqVector
-
-                      frame%particles(i)%qDot(:)=qDotNewI
-                      frame%particles(ii)%qDot(:)=qDotNewII
-
-                      !Update position: use corrected velocity to update to where you should've been, had the collision been detected when it happened! Damange control..hehe
-                      frame%particles(i)%q(:)=frame%particles(i)%q(:) + (frame%particles(i)%qDot(:)*deltaT)
-                      frame%particles(ii)%q(:)=frame%particles(ii)%q(:) + (frame%particles(ii)%qDot(:)*deltaT)
-                      
-                   end if
-
-                end if
-             !end if
-             end do
-          end do
           end if
        end if
+       
+       do rk=1,4
+          do i=1,macroscopic%N
+             !save the old positions in the last frame
+             !lastFrame%particles(i) = frame%particles(i)
+             if(present(optimized)) then
+                if(optimized==1) then
+                   !GET A LIST OF NEIGHBOURS          
+                   neighbourCount=0
+
+                   !First discritize the particle's location
+                   qDisc=int((lastFrame%particles(i)%q(:)/boxSize)*nPrec)
+                   !write(*,*) size(boxAddresses(:,1))
+                   do j=1,size(boxAddresses(:,1))
+                      !goto the neibhouring box
+                      cAdd=qDisc + boxAddresses(j,:)
+                      !if it exists ofcourse
+                      if(cAdd(1)>=0 .and. cAdd(2)>=0 .and. cAdd(3)>=0 .and. cAdd(1)<=nPrec .and. cAdd(2)<=nPrec .and. cAdd(3)<=nPrec) then
+                         !extract the relavent box from the neighbour matrix          
+                         nMatCurr=nMat(cAdd(1),cAdd(2),cAdd(3))
+                         !write(*,*) nMatCurr
+                         if(nMatCurr .ne. 0) then
+                            neighbourCount=neighbourCount+1
+                            neighbourAddress(neighbourCount)=nMatCurr
+                            ii=nMatCurr
+                            do while (ii .ne. 0)
+                               tempParticle=frame%particles(ii)
+                               if(tempParticle%next .ne. 0) then                         
+                                  neighbourCount=neighbourCount+1
+                                  neighbourAddress(neighbourCount)=tempParticle%next
+                                  ii=tempParticle%next
+                               else
+                                  exit                         
+                               end if
+                            end do
+                         end if
+                         !neighbourAddress
+                      end if
+                   end do
+                end if
+             else
+                neighbourAddress=(/ (l, l=1,macroscopic%N) /)
+                neighbourCount=macroscopic%N
+             end if
+             ! write(*,*) " for ",i, neighbourAddress(1:neighbourCount)
+             ! write(*,*) " for ",i, qDisc
+             ! write(*,*) " for ",i, size(boxAddresses(:,1))
+
+             !firs set the force being applied on the ith particle to be zero
+             frame%particles(i)%force=0
+             !update particle velocity (bad algorithm)
+             !to do that, first find the force being applied on the particle
+
+             !EULER
+             ! frame%particles(i)%force = effectiveForce(lastFrame%particles(i)%q,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)
+
+             !RK 4 | this is insane! (look at your notes to understand what you were doing here)
+             if(rk==1) then
+                frame%particles(i)%k1=frame%particles(i)%qDot
+                !the second parameter in effectiveF gives which q to use for evaluating the force
+                frame%particles(i)%m1=effectiveF(i,1,frame%particles,neighbourAddress(1:neighbourCount),potentialParameter)
+
+                frame%particles(i)%q2=frame%particles(i)%q + 0.5*dt*frame%particles(i)%k1
+                !the following in general is needed, but in this case, it is not (since the force doesn't depend on the velocity)
+                !frame%particles(i)%qDot2=frame%particles(i)%qDot + 0.5*dt*frame%particles(i)%m1
+             else if(rk==2) then
+                frame%particles(i)%k2=frame%particles(i)%qDot + 0.5*dt*frame%particles(i)%m1
+                frame%particles(i)%m2=effectiveF(i,2,frame%particles,neighbourAddress(1:neighbourCount),potentialParameter)
+
+                frame%particles(i)%q3=frame%particles(i)%q + 0.5*dt*frame%particles(i)%k2
+             else if(rk==3) then
+                frame%particles(i)%k3=frame%particles(i)%qDot + 0.5*dt*frame%particles(i)%m2
+                frame%particles(i)%m3=effectiveF(i,3,frame%particles,neighbourAddress(1:neighbourCount),potentialParameter)
+
+                frame%particles(i)%q4=frame%particles(i)%q + dt*frame%particles(i)%k3
+             else if(rk==4) then
+                frame%particles(i)%k4=frame%particles(i)%qDot + dt*frame%particles(i)%m3
+                frame%particles(i)%m4=effectiveF(i,4,frame%particles,neighbourAddress(1:neighbourCount),potentialParameter)
+
+                frame%particles(i)%q=frame%particles(i)%q + (frame%particles(i)%k1 + (2*frame%particles(i)%k2) + (2*frame%particles(i)%k3) + frame%particles(i)%k4)*dt/6.0
+                frame%particles(i)%qDot=frame%particles(i)%qDot + (frame%particles(i)%m1 + (2*frame%particles(i)%m2) + (2*frame%particles(i)%m3) + frame%particles(i)%m4)*dt/6.0
+                !frame%particles(i)%q4=frame%particles(i)%q + dt*frame%particles(i)%k3
+
+
+                !AND NOW do what you want to about the wall collisions etc.
+                !check for wall collisions and evaluate pressure on each wall on the fly
+                do j=1,3
+                   ! if (q(j,i) >= 1.0) then
+                   ! if (q(j,i) >= boxSize) then
+                   if (frame%particles(i)%q(j)>=boxSize-radius) then
+                      frame%pressureWall(j,1)=frame%pressureWall(j,1)+ ( (2*m*frame%particles(i)%qDot(j))/ (dt*area) )
+                      frame%particles(i)%qDot(j)=-frame%particles(i)%qDot(j)
+                      frame%particles(i)%q(j)=frame%particles(i)%q(j)-2*(frame%particles(i)%q(j)-(boxSize-radius))
+                      if(frame%particles(i)%q(j)<=radius) then
+                         !stop "Decrease dt! After reflecting from the wall and correcting, the particle is going outside the box! :("
+                      end if
+                      !else if (q(j,i) <= 0.0) then
+                   else if (frame%particles(i)%q(j)<=radius) then
+                      frame%pressureWall(j,2)=frame%pressureWall(j,2)-( (2*m*frame%particles(i)%qDot(j)) / (dt*area) )
+                      frame%particles(i)%qDot(j)=-frame%particles(i)%qDot(j)
+                      frame%particles(i)%q(j) = (2*radius)-frame%particles(i)%q(j) 
+                      if(frame%particles(i)%q(j)>=boxSize-radius) then
+                         !stop "Decrease dt! After reflecting from the wall and correcting, the particle is going outside the box! :("
+                      end if
+                   end if
+                end do
+                !evaluate total energy
+                framesRecord(k)%E=framesRecord(k)%E+energy(frame%particles(i)%qDot(:))
+
+             end if
+                
+                
+             ! temp%k1 = (effectiveForce(lastFrame%particles(i)%q,i,lastFrame%particles, neighbourAddress, potentialParameter, neighbourCount)/m)*dt
+             ! temp%k2 = (effectiveForce(lastFrame%particles(i)%q + 0.5*temp%k1,i,lastFrame%particles, neighbourAddress, potentialParameter, neighbourCount)/m)*dt
+             ! temp%k3 = (effectiveForce(lastFrame%particles(i)%q + 0.5*temp%k2,i,lastFrame%particles, neighbourAddress, potentialParameter, neighbourCount)/m)*dt
+             ! temp%k4 = (effectiveForce(lastFrame%particles(i)%q + temp%k3,i,lastFrame%particles, neighbourAddress, potentialParameter, neighbourCount)/m)*dt
+
+             ! temp%k1 = (effectiveForce(lastFrame%particles(i)%q,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)/m)*dt
+             ! temp%k2 = (effectiveForce(lastFrame%particles(i)%q + 0.5*temp%k1,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)/m)*dt
+             ! temp%k3 = (effectiveForce(lastFrame%particles(i)%q + 0.5*temp%k2,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)/m)*dt
+             ! temp%k4 = (effectiveForce(lastFrame%particles(i)%q + temp%k3,i,lastFrame%particles, (/ (s, s=1,macroscopic%N) /), potentialParameter)/m)*dt
+
+             !OBSOLETE
+             ! do s=1,macroscopic%N
+             !    if(s .ne. i) then
+             !       frame%particles(i)%force=frame%particles(i)%force + force(lastFrame%particles(s)%q,lastFrame%particles(i)%q,potentialParameter)
+             !    end if
+             ! end do
+
+             ! now with this, find the particle velocity
+             !EULER
+             ! frame%particles(i)%qDot=frame%particles(i)%qDot + ((frame%particles(i)%force/m)*dt)
+
+
+             !RK 4
+             !frame%particles(i)%qDot=frame%particles(i)%qDot + (1/6.0)*(temp%k1 + 2*temp%k2 + 2*temp%k3 + temp%k4)
+
+             ! update particle position
+             ! part of RK 4, but euler
+             ! frame%particles(i)%q(:)=frame%particles(i)%q(:)+(lastFrame%particles(i)%qDot(:)*dt)
+
+             !EULER (MIXED)
+             !frame%particles(i)%q(:)=frame%particles(i)%q(:)+(frame%particles(i)%qDot(:)*dt)
+
+
+
+          end do
+       end do
+       
 
        !THis is to save the location and position of particle 1
        !at different times
@@ -983,6 +802,48 @@ contains
        end if
     end do
   end function effectiveForce
+
+  function effectiveF(i,j,particles,particleIDs,par,numParticles)
+    real, dimension(3):: q
+    real, dimension(3):: effectiveF,r
+    integer, intent(in):: i,j
+    integer :: s,num
+    integer, optional :: numParticles
+    type(particleLike), dimension(:),intent(in) :: particles
+    integer, dimension(:),intent(in) :: particleIDs
+    type(potentialParametersLike),intent(in) :: par
+    num=size(particleIDs)
+    if(present(numParticles)) then
+       num=numParticles
+    end if
+    effectiveF=0
+    do s=1, num       
+       if(particleIDs(s) .ne. i) then
+          if(j==1) then
+             r=particles(particleIDs(s))%q
+             q=particles(i)%q
+          else if(j==2) then
+             r=particles(particleIDs(s))%q2
+             q=particles(i)%q2
+          else if(j==3) then
+             r=particles(particleIDs(s))%q3
+             q=particles(i)%q3
+          else if(j==4) then
+             r=particles(particleIDs(s))%q4
+             q=particles(i)%q4
+          end if
+          !effectiveForce=effectiveForce + force(particles(particleIDs(s))%q,q,par)
+          effectiveF=effectiveF + force(r,q,par)
+          !write(*,*) particles(particleIDs(s))%q
+          if(particleIDs(s) > macroscopic%N) then
+             write(*,*) particleIDs(s)
+          end if
+          !effectiveForce=effectiveForce + (/ 0.0,0.0,0.0 /)
+       end if
+    end do
+  end function effectiveF
+
+
   ! !gradV
   ! function gradV (r,q,par)
     
