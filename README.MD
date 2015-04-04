@@ -33,10 +33,11 @@ Progress
 	April 2, 2015: Started modernizing. Linked list done, gdb started use
 	April 3, 2015: Working on nearest neighbour for a given radius, LJ potential, r-4 potential, gdb used in a big way for debugging, euler evolution, rk4 evolution (neighter worked well with LJ potential, r-4 is fine)
 	April 4, 2015: Tweaked rendering for constant physical time, Implemented neighbour search in the real program, further optimization left
+	April 5, 2015: (couldn't sleep) (in 2 hours) fixed RK4. Now LJ works fine. able to go upto 1000 particles.
 	
 Immediate Goals
 --
 	* Start from non-equilibrium
 	* Linked list (perhaps later) | done
 	* Neighbouring Boxes | done
-	* Short range forces | done (not efficient enough)
+	* Short range forces | done (not efficient enough | RK4 was wrong, now fixed, still efficiency can be improved)
