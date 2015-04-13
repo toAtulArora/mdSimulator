@@ -26,10 +26,10 @@ end type macroscopicLike
 type(macroscopicLike) :: macroscopic
 
 !old tN=3000
-real, parameter :: simulationDuration=5.0
+real, parameter :: simulationDuration=1.0
 integer(kind=4), parameter :: tN=simulationDuration/dt, Nmax=1000000,mN=100
 !render duration in seconds
-real, parameter :: renderDuration=5.0
+real, parameter :: renderDuration=1.0
 
 integer, parameter :: collisionAlgorithm = 1
 !this is the mass
@@ -55,8 +55,8 @@ real :: temp1,temp2
 
 type potentialParametersLike
    real :: epsilon=100,rm=radius !0.01
-   real :: A=4,B=6,X=1,Y=0
-   !real :: A=12,B=6,X=1,Y=2
+   ! real :: A=4,B=6,X=1,Y=0
+   real :: A=12,B=6,X=1,Y=2
    !This is for the potential
    ! u = epsilon (X*(rm/r)**A - Y*(rm/r)**B)
    !d is the distance 2*radius
@@ -138,72 +138,76 @@ open(unit=5,file='PavgVsN')
 ! close(7)
 
 
+do l=24,24
+   do tEquiv=1,38
 
-do tEquiv=28,28
+      macroscopic%N=10**(l/8.0)
+      write (*,*) "Initializing initial q and qDot for ", macroscopic%N, " particles, with tEquiv ", tEquiv
+      call init(real(1.2**tEquiv))
+      !call init(spooky=1)
 
-   !macroscopic%N=10**(l/8.0)
-   write (*,*) "Initializing initial q and qDot for ", macroscopic%N, " particles, with tEquiv ", tEquiv
-   call init(real(1.2**tEquiv))
-   !call init(spooky=1)
+      write (*,*) "Done!\n"
 
-   write (*,*) "Done!\n"
+      !histOutput = hist(qDot(2,1:N),10)
+      !write(*,*) "THIS IS WHAT I SENT: ",qDot(2,1:N)
+      !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
 
-   !histOutput = hist(qDot(2,1:N),10)
-   !write(*,*) "THIS IS WHAT I SENT: ",qDot(2,1:N)
-   !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
+      !write(*,*) qDot(2,1:N)
 
-   !write(*,*) qDot(2,1:N)
+      call setXrange(0.0,real(boxSize))
+      call setYrange(0.0,real(boxSize))
+      call setZrange(0.0,real(boxSize))
 
-   call setXrange(0.0,real(boxSize))
-   call setYrange(0.0,real(boxSize))
-   call setZrange(0.0,real(boxSize))
-
-   write (*,*) "Starting iterations [will do ", tN," of em] (simulating ",dt*tN," physical seconds)..."
-   !lastFrame=frame
-   call cpu_time(temp1)   
-   !collisionAlgorithm
-   call iterateTheseManyTimes(tN,optimized=1,plotGraphs=1)
-   call cpu_time(temp2)
-   write(*,*) "Done iterating in  ", temp2- temp1, " seconds\n"
-   !write (*,*) "Done iterating :) \n"
-   !l=l+1
-   
-      
-
-   !SHUT THIS FOR SOMETIME
-   ! macroscopic%P=sum(framesRecord(10:tN)%P)/real(tN-10)
-   ! !volume is known
-   ! macroscopic%E=sum(framesRecord(10:tN)%E)/real(tN-10)   
-   ! !avgE=sum(E(1000:tN))/real(tN-1000)
-   ! !temp1=avgP*volume - (N*Kb*temperature(avgE))
-   
-   ! temp1=macroscopic%P*macroscopic%V - (2/3.0)*macroscopic%E
-   ! write(4,*) macroscopic%N,temp1,macroscopic%P,macroscopic%E,macroscopic%P*macroscopic%V,(2.0/3.0)*macroscopic%E
+      write (*,*) "Starting iterations [will do ", tN," of em] (simulating ",dt*tN," physical seconds)..."
+      !lastFrame=frame
+      call cpu_time(temp1)   
+      !collisionAlgorithm
+      call iterateTheseManyTimes(tN,optimized=1,plotGraphs=1)
+      call cpu_time(temp2)
+      write(*,*) "Done iterating in  ", temp2- temp1, " seconds\n"
+      !write (*,*) "Done iterating :) \n"
+      !l=l+1
 
 
 
+      !SHUT THIS FOR SOMETIME
+      macroscopic%P=sum(framesRecord(10:tN)%P)/real(tN-10)
+      !volume is known
+      macroscopic%E=sum(framesRecord(10:tN)%E)/real(tN-10)   
+      !avgE=sum(E(1000:tN))/real(tN-1000)
+      !temp1=avgP*volume - (N*Kb*temperature(avgE))
 
-   !windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
-   !windowSizeN(l)=N
+      temp1=macroscopic%P*macroscopic%V - (2/3.0)*macroscopic%E
+      write(4,*) macroscopic%N,temp1,macroscopic%P,macroscopic%E,macroscopic%P*macroscopic%V,(2.0/3.0)*macroscopic%E
 
-   !histOutput = hist(qDot(2,1:N),10)
-   !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
 
-   !write(*,*) q(2,1:N)
-   !E(1:tN)
-   
-   !histOutput=hist(framesRecord(1:tN)%E,50)
-   
-   !write(*,*) E(1:tN)
-   !call nextPlot2d(histOutput(1:50,1),histOutput(1:50,2))
-   !call plot2dSave(histOutput(1:50,1),histOutput(1:50,2),"EnergyHist.jpg")
-   
-!,rangeXstart=0,rangeXend=6e7)
-   !avgE=sum(E)/real(tN)
-   !write(4,*) N,stdDevFromHist(histOutput(1:50,:)),stdDevFromHist(histOutput(1:50,:))/avgP
 
-   !histogram of x component of qDot
+      !windowSize(l)=evaluateAvgWindowSizeForP(Pw,15.0)
+      !windowSizeN(l)=N
 
+      !histOutput = hist(qDot(2,1:N),10)
+      !call nextPlot2d(histOutput(1:10,1),histOutput(1:10,2))
+
+      !write(*,*) q(2,1:N)
+      !E(1:tN)
+
+      histOutput=hist(framesRecord(10:tN)%P,50)
+
+      !write(*,*) E(1:tN)
+      !call nextPlot2d(histOutput(1:50,1),histOutput(1:50,2))
+      !call plot2dSave(histOutput(1:50,1),histOutput(1:50,2),"EnergyHist.jpg")
+
+      !,rangeXstart=0,rangeXend=6e7)
+      ! avgE=sum(E)/real(tN)
+      ! if(macroscopic%P > 0) then
+      !    write(5,*) macroscopic%N,stdDevFromHist(histOutput(1:50,:)),stdDevFromHist(histOutput(1:50,:))/macroscopic%P
+      ! else
+      !    write(5,*) macroscopic%N,stdDevFromHist(histOutput(1:50,:))
+      ! end if
+
+      !histogram of x component of qDot
+
+   end do
 end do
 
 close(4)
@@ -268,6 +272,36 @@ contains
     real :: energy
     energy = ( (x(1)*x(1)) + (x(2)*x(2)) + (x(3)*x(3)) ) * (m/2.0)
   end function energy
+
+  function energyWithPotential(qDot,q,i,particles,particleIDs,par,numParticles)
+    real, dimension(3),intent(in) :: q,qDot
+    real, dimension(3):: r
+    real :: energyWithPotential
+    integer, intent(in):: i
+    integer :: s,num
+    integer, optional :: numParticles
+    type(particleLike), dimension(:),intent(in) :: particles
+    integer, dimension(:),intent(in) :: particleIDs
+    type(potentialParametersLike),intent(in) :: par
+    num=size(particleIDs)
+    if(present(numParticles)) then
+       num=numParticles
+    end if
+    energyWithPotential=0
+    do s=1, num       
+       if(particleIDs(s) .ne. i) then
+          r=particles(particleIDs(s))%q
+          !effectiveForce=effectiveForce + force(particles(particleIDs(s))%q,q,par)
+          energyWithPotential=energyWithPotential + V(r,q,par)
+          !write(*,*) particles(particleIDs(s))%q
+          if(particleIDs(s) > macroscopic%N) then
+             write(*,*) particleIDs(s)
+          end if
+          !effectiveForce=effectiveForce + (/ 0.0,0.0,0.0 /)
+       end if
+    end do
+    energyWithPotential=energyWithPotential + energy(qDot)
+  end function energyWithPotential
 
   function signedRand()
     real :: signedRand
@@ -484,7 +518,7 @@ contains
           end if
        end if
        
-       do rk=1,4
+       do rk=1,5
           do i=1,macroscopic%N
              !save the old positions in the last frame
              !lastFrame%particles(i) = frame%particles(i)
@@ -590,8 +624,10 @@ contains
                    end if
                 end do
                 !evaluate total energy
-                framesRecord(k)%E=framesRecord(k)%E+energy(frame%particles(i)%qDot(:))
-
+                ! framesRecord(k)%E=framesRecord(k)%E+energy(frame%particles(i)%qDot(:)) 
+             else if(rk==5) then
+                !here all the particle positions and velocities have been updated :)
+                framesRecord(k)%E=framesRecord(k)%E+energyWithPotential(frame%particles(i)%qDot,frame%particles(i)%q,i,frame%particles,neighbourAddress,potentialParameter,neighbourCount) 
              end if
                 
                 
@@ -752,7 +788,8 @@ contains
     real :: modr,V
     modr=sqrt(sum((r-q)**2))
     !if( sum(r*r - q*q) < d*d) then
-    V=par%epsilon * ( (par%rm/modr)**12 - 2*(par%rm/modr)**6)       
+    !V=par%epsilon * ( (par%rm/modr)**12 - 2*(par%rm/modr)**6)       
+    V=par%epsilon * ( par%X*(par%rm/modr)**par%A - par%Y*(par%rm/modr)**par%B)       
   end function V
 
   function Vprime(r,q,par)
@@ -833,7 +870,7 @@ contains
              q=particles(i)%q4
           end if
           !effectiveForce=effectiveForce + force(particles(particleIDs(s))%q,q,par)
-          effectiveF=effectiveF + force(r,q,par)
+          effectiveF=effectiveF + (force(r,q,par)/m)
           !write(*,*) particles(particleIDs(s))%q
           if(particleIDs(s) > macroscopic%N) then
              write(*,*) particleIDs(s)
