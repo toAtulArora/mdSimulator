@@ -1,0 +1,11 @@
+ Initializing initial q and qDot for           23  particles, with tEquiv           30
+ Done!
+
+ Starting iterations [will do       200000  of em] (simulating    20.0000000      physical seconds)...
+ [##########]
+ Done iterating in     92.7308044      seconds
+
+
+ Radius is 1.0
+
+ Particles were initialized to have random coordinates. Velocities were initialized to be normal random in Y and Z directions, and uniform random in X direction. Over time, X component of velocity tends to poissonian as time evolves (probably because the number of particles was too small)

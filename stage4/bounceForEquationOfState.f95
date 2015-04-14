@@ -7,14 +7,14 @@ use stat
 implicit none
 !old dt=0.001
 real,parameter :: maxVelocity=50
-real,parameter :: radius=1.0,dt=0.0001 !radius/(10*maxVelocity) !0.0001
+real,parameter :: radius=0.05,dt=0.0001 !radius/(10*maxVelocity) !0.0001
 !radius is the radius of the hard sphere
 !N is the number of particles
 !mN is the number of iterations for which a movie is made (OBSOLETE)
 !tN is the number of itrations (not a parameter because we want to keep it variable)
 !NOTE: You must initialize Nmax with the maximum number of particles you wish to simulate the system with | else you'll get memory overflow errrors
 type macroscopicLike
-   integer(kind=4) :: N=100
+   integer(kind=4) :: N=1000
    !this is the volume
    !real :: volume=1000
    real:: V=1000
@@ -26,10 +26,10 @@ end type macroscopicLike
 type(macroscopicLike) :: macroscopic
 
 !old tN=3000
-real, parameter :: simulationDuration=20.0
+real, parameter :: simulationDuration=1.0
 integer(kind=4), parameter :: tN=simulationDuration/dt, Nmax=1000000,mN=100
 !render duration in seconds
-real, parameter :: renderDuration=20.0
+real, parameter :: renderDuration=1.0
 
 integer, parameter :: collisionAlgorithm = 1
 !this is the mass
@@ -138,12 +138,12 @@ open(unit=5,file='PavgVsN')
 ! close(7)
 
 
-do l=11,11
-   do tEquiv=30,30
+do l=24,24
+   do tEquiv=1,38
 
       macroscopic%N=10**(l/8.0)
       write (*,*) "Initializing initial q and qDot for ", macroscopic%N, " particles, with tEquiv ", tEquiv
-      call init(real(1.2**tEquiv),nonEq=1)
+      call init(real(1.2**tEquiv))
       !call init(spooky=1)
 
       write (*,*) "Done!\n"
@@ -162,7 +162,7 @@ do l=11,11
       !lastFrame=frame
       call cpu_time(temp1)   
       !collisionAlgorithm
-      call iterateTheseManyTimes(tN,optimized=1,plotGraphs=3)
+      call iterateTheseManyTimes(tN,optimized=1,plotGraphs=1)
       call cpu_time(temp2)
       write(*,*) "Done iterating in  ", temp2- temp1, " seconds\n"
       !write (*,*) "Done iterating :) \n"
@@ -261,7 +261,6 @@ close(5)
 write (*,*) "Finalizing visualizaiton..."
 call endPlot()
 call system("xdg-open result3d.avi")
-!call system("xdg-open result2d.avi")
 
 write (*,*) "Done \n"
 
@@ -327,10 +326,9 @@ contains
   !function removeElementFromArray
   
   !To initialize the position and velocity of the particles with random values
-  subroutine init(parametricT,spooky,nonEq)
+  subroutine init(parametricT,spooky)
     real, optional:: parametricT
     integer, optional :: spooky
-    integer, optional :: nonEq
     !intialize boxSize etc. required for iterating
     boxSize=macroscopic%V**(1.0/3.0)
     area=macroscopic%V**(2.0/3.0)
@@ -348,16 +346,9 @@ contains
        frame%particles(i)%q(3)=rand()*(boxSize-(2*radius)) + radius
 
        if (present(parametricT)) then
-          if(present(nonEq)) then
-             !initializes to uniformly distributed speeds | should get after evolution, gaussian
-             frame%particles(i)%qDot(1)=(0.5-rand())*(parametricT/10) !rand()*10
-             frame%particles(i)%qDot(2)=randomNormal()*parametricT !rand()*10 (0.5-rand())*(parametricT/10) !rand()*10
-             frame%particles(i)%qDot(3)=randomNormal()*parametricT !rand()*10 (0.5-rand())*(parametricT/10)  !rand()*10             
-          else
-             frame%particles(i)%qDot(1)=randomNormal()*parametricT !rand()*10
-             frame%particles(i)%qDot(2)=randomNormal()*parametricT !rand()*10
-             frame%particles(i)%qDot(3)=randomNormal()*parametricT  !rand()*10
-          end if
+          frame%particles(i)%qDot(1)=randomNormal()*parametricT !rand()*10
+          frame%particles(i)%qDot(2)=randomNormal()*parametricT !rand()*10
+          frame%particles(i)%qDot(3)=randomNormal()*parametricT  !rand()*10
        else
           !on an average, the velocity will be 0,
           !max velocity will be 500
@@ -370,12 +361,9 @@ contains
        if(present(spooky)) then
        !Its the spooknfiguration
           frame%particles(i)%q(1)=((real(i)/real(macroscopic%N))*(boxSize-(2*radius))) + radius
-          frame%particles(i)%q(2)=((real(i)/real(macroscopic%N))*(boxSize-(2*radius))) + radius
-          !frame%particles(i)%q(2)=2*radius
+          frame%particles(i)%q(2)=2*radius
           frame%particles(i)%q(3)=2*radius
-       ! end if
 
-       ! if(present(spooky)) then
           frame%particles(i)%qDot(:)=0.0
           frame%particles(i)%qDot(1)=-5.0 !abs(randomNormal()*10.0)
           
@@ -699,8 +687,7 @@ contains
           if(k<mN) then
              if(plotGraphs==2 .or. plotGraphs==3) then
                 
-                !histOutput = hist((frame%particles(1:macroscopic%N)%qDot(1)**2) + (frame%particles(1:macroscopic%N)%qDot(2)**2) + (frame%particles(1:macroscopic%N)%qDot(3)**2),20)
-                histOutput = hist((frame%particles(1:macroscopic%N)%qDot(1)**2),20)
+                histOutput = hist((frame%particles(1:macroscopic%N)%qDot(1)**2) + (frame%particles(1:macroscopic%N)%qDot(2)**2) + (frame%particles(1:macroscopic%N)%qDot(3)**2),20)
                 ! hist((qDot(2,1:N)*qDot(2,1:N))+ (qDot(1,1:N)*qDot(1,1:N)) + (qDot(3,1:N)*qDot(3,1:N)),20)
                 call nextPlot2d(histOutput(1:20,1),histOutput(1:20,2))
              end if

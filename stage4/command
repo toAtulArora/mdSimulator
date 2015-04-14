@@ -1,9 +1,9 @@
  set terminal jpeg
- set output 'temp/file0625.jpeg'
+ set output 'temp/file0499.jpeg'
  set grid ytics lc rgb '#bbbbbb' lw 1 lt 0
  set grid xtics lc rgb '#bbbbbb' lw 1 lt 0
  set grid ztics lc rgb '#bbbbbb' lw 1 lt 0
- set view 60,   265.000000    
+ set view 60,   139.000000    
  set xrange [0:   10.0000010     ]
  set yrange [0:   10.0000010     ]
  set zrange [0:   10.0000010     ]
